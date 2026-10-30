@@ -20,7 +20,8 @@ instalador, nunca como plugin (veja `docs/compatibilidade-clis.md`, seção Plug
 ## Entrada
 
 `npx github:Or4cu1o/vibecoding-devtools#v<versão>`: o npm baixa o repositório na tag e roda o instalador, sem publicar
-pacote. A tag fixa a versão, como a regra de segredos e infraestrutura exige para downloads. Nada de `curl | bash`.
+pacote. A tag fixa a versão, como a superfície `segredos-e-infra` da skill `revisao-de-seguranca` exige para downloads. Nada de
+`curl | bash`.
 
 ## Fluxo
 
