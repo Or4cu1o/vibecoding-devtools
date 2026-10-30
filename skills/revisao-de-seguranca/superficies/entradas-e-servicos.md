@@ -3,10 +3,11 @@
 ## Toda entrada
 
 - São entradas não confiáveis: o usuário, mas também o banco, arquivos locais, filas, webhooks e APIs de terceiros.
-- Validação por esquema na borda: tipos, campos permitidos, tamanho máximo de strings e de listas, IDs no formato esperado.
+- Validação por esquema na borda: tipos, campos permitidos, tamanho máximo de strings e de listas, IDs no formato
+  esperado.
 - Consultas sempre parametrizadas ou pelo ORM; nada de montar SQL ou filtro com texto do usuário.
-- Erro para o cliente é genérico: sem traceback, `repr` da exceção, caminho de arquivo nem configuração. O detalhe fica no
-  log do servidor.
+- Erro para o cliente é genérico: sem traceback, `repr` da exceção, caminho de arquivo nem configuração. O detalhe fica
+  no log do servidor.
 
 ## Desserialização
 
@@ -31,15 +32,15 @@
 
 ## Uploads
 
-- Tamanho máximo, tipo conferido pelo conteúdo e não pela extensão, nome gerado pelo servidor, armazenamento fora da raiz
-  pública.
+- Tamanho máximo, tipo conferido pelo conteúdo e não pela extensão, nome gerado pelo servidor, armazenamento fora da
+  raiz pública.
 
 ## Mensagens que o sistema publica (bots, chats, e-mails)
 
 - Texto vindo de usuário ou de terceiros, quando republicado, tem menções desligadas ou escapadas (no Discord,
   `AllowedMentions.none()`), para evitar `@everyone` e afins injetados.
-- Links vindos de fora são exibidos como texto ou passam por allowlist; nada de link mascarado com destino controlado por
-  terceiros.
+- Links vindos de fora são exibidos como texto ou passam por allowlist; nada de link mascarado com destino controlado
+  por terceiros.
 - Limite de tamanho e de frequência no que o sistema publica em nome de alguém.
 
 ## Testes obrigatórios

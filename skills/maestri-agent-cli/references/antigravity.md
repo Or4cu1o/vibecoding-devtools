@@ -93,7 +93,8 @@ Telemetry, Notifications, Rendering Mode, Seasonal Themes, Show Active Tasks, Sh
   refreshes. Esc closes it.
   - **Gemini** group: Gemini Flash, Gemini Pro.
   - **Claude and GPT** group: Claude Opus, Claude Sonnet, GPT-OSS.
-- Groups are separate: when one runs out, `/model` to a model of the other group can keep the agent working on the same account.
+- Groups are separate: when one runs out, `/model` to a model of the other group can keep the agent working on the same
+  account.
 - `/credits`: remaining G1 credits. With **Use AI Credits** on, the agent keeps going on credits after the quota ends;
   turning it on spends money, so ask the user.
 - Not yet observed: the quota-exhausted screen.
@@ -148,4 +149,5 @@ not built in.
 
 ## Not yet observed
 
-Quota-exhausted screen, logged-out screen, model or network errors, and how Queued Messages behaves while the agent is busy.
+Quota-exhausted screen, logged-out screen, model or network errors, and how Queued Messages behaves while the agent is
+busy.

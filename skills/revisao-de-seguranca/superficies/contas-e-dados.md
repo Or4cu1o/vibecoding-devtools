@@ -7,7 +7,8 @@
 - Limite de tentativas e bloqueio progressivo no login, no reset e na verificação de código.
 - Mensagens genéricas: não revelar se o e-mail ou o usuário existe.
 - Reset de senha com token de uso único, validade curta e guardado só como hash.
-- MFA obrigatório para admin. Confirmação extra (step-up) antes de saque, troca de valor alto e mudança de e-mail ou de senha.
+- MFA obrigatório para admin. Confirmação extra (step-up) antes de saque, troca de valor alto e mudança de e-mail ou de
+  senha.
 - Trocar a senha encerra as outras sessões.
 
 ## Sessão

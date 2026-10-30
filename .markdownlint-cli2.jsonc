@@ -1,4 +1,4 @@
-// Regras de Markdown do kit. O CI e `npx markdownlint-cli2 "**/*.md"` leem este arquivo.
+// Regras de Markdown do kit, lidas pelo CI e pelo comando local (markdownlint-cli2 0.24.0, a versão da action).
 {
   "config": {
     "default": true,
@@ -9,7 +9,9 @@
     // Os modelos usam <marcadores> para o usuário preencher.
     "MD033": false,
     // CLAUDE.md de projeto começa com @AGENTS.md, não com título.
-    "MD041": false
+    "MD041": false,
+    // Tabelas compactas (|---|), como no resto do kit.
+    "MD060": false
   },
   "ignores": ["node_modules/**"]
 }
