@@ -1,0 +1,15 @@
+// Regras de Markdown do kit. O CI e `npx markdownlint-cli2 "**/*.md"` leem este arquivo.
+{
+  "config": {
+    "default": true,
+    // 120 colunas no texto; tabelas, blocos de código e títulos ficam livres.
+    "MD013": { "line_length": 120, "tables": false, "code_blocks": false, "headings": false },
+    // O CHANGELOG repete "Adicionado" e "Alterado" em cada versão.
+    "MD024": { "siblings_only": true },
+    // Os modelos usam <marcadores> para o usuário preencher.
+    "MD033": false,
+    // CLAUDE.md de projeto começa com @AGENTS.md, não com título.
+    "MD041": false
+  },
+  "ignores": ["node_modules/**"]
+}
