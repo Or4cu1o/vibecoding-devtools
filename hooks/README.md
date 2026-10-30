@@ -9,5 +9,14 @@ gasta tokens em toda conversa; prefira hooks que só rodam um comando e bloqueia
    `pnpm test` sem filtro) num repositório com CI, lembrando de rodar só os testes do que mexeu.
 3. **Proporção de testes** (antes do push): compara as linhas de teste e de produção do diff. Acima de um limiar, avisa que
    um item Baixo ou Médio pode estar com teste demais.
+4. **Cabeçalho do protocolo Maestri** (`PreToolUse` em `maestri ask`, sem `--raw`): bloqueia a mensagem a outro agente que
+   não comece com `~ <Nome> | <STATUS> | <ref> | <resumo>` e devolve o motivo, para o agente corrigir e reenviar. Só no
+   pacote Maestri.
 
-Referência: hooks do Claude Code em `settings.json` (`PreToolUse`, `PostToolUse`, `SessionStart`).
+## Como serão escritos
+
+- Em Node, um script por hook, sem `npx` nem dependências pesadas dentro do hook.
+- O mesmo script atende Claude Code, Codex e Antigravity: reconhece o formato da entrada e responde no formato de cada CLI.
+  Os três bloqueiam um comando de shell antes de ele rodar; os detalhes (ferramenta, campo do comando, como bloquear) estão
+  em `docs/compatibilidade-clis.md`, seção Hooks.
+- No Codex, cada hook precisa ser aprovado pelo usuário no `/hooks`, e toda mudança no hook pede nova aprovação.
