@@ -14,6 +14,9 @@ versões em [SemVer](https://semver.org/lang/pt-BR/).
 ### Alterado
 
 - Markdown dentro do limite de 120 colunas, com a linguagem em todo bloco de código.
+- Especificação do instalador fechada: Node ≥ 22, painel em `@clack/prompts`, rules do ECC copiadas pelo próprio
+  instalador (`common` global nas três CLIs e `web` só no Claude Code), ECC por módulos sem `rules-core`, hooks do ECC
+  desligados por padrão e `uninstall` na 0.1.0.
 
 ## [0.0.1] - 2026-10-29
 
