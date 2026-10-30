@@ -40,7 +40,7 @@ sessão, permissões e ações administrativas; segredos e tokens; entrada exter
 - Testes nos caminhos de risco.
 - Arquitetura, testes e segurança revisam uma vez cada, em paralelo, no commit final.
 - Dinheiro, dados pessoais ou autenticação feita do zero: baseline completo (OWASP ASVS 5.0 L2), e2e de cada fluxo de
-  autenticação e de pagamento, cobertura ≥ 80% no código alterado e todo achado Médio ou acima corrigido antes do merge.
+  autenticação e de pagamento e cobertura ≥ 80% no código alterado.
 
 ## Em todos os níveis
 
@@ -49,10 +49,15 @@ sessão, permissões e ações administrativas; segredos e tokens; entrada exter
   encaixam. Dois trabalhando custam quase o mesmo que um fazendo tudo, e terminam antes.
 - **Uma passada por revisão**, no commit final. Revisa de novo só quem teve código de produção da sua área alterado; commit
   só de teste ou de docs não chama ninguém.
-- **Revisão automática** (CodeRabbit, GitGuardian e afins): espere a revisão terminar e corrija tudo num envio só. Segredo,
-  Crítico e Maior bloqueiam; Menor e nitpick: corrija se for trivial, senão responda o motivo e resolva.
-- **Achados:** Crítico e Alto bloqueiam; Médio bloqueia no nível Alto ou quando o próprio PR introduziu a regressão; Baixo e
-  problemas que já existiam antes do PR vão para o backlog e nunca abrem um ciclo novo no mesmo PR.
+- **Revisão automática** (CodeRabbit, GitGuardian e afins): espere a revisão terminar e corrija tudo num envio só.
+- **Achados:** toda revisão (de pessoa, de agente ou automática) classifica cada achado em **Crítico**, **Maior**, **Menor**
+  ou **Sugestão** (o nitpick da revisão automática). Baixo, Médio e Alto são só níveis de risco da tarefa, nunca de achado.
+  Esta é a única fonte da regra de bloqueio; skills e outras regras apontam para cá.
+  - Segredo exposto, **Crítico** e **Maior**: bloqueiam sempre.
+  - **Menor:** bloqueia quando a tarefa é de nível Alto ou quando o próprio PR introduziu o problema. Fora disso, corrija se
+    for trivial; senão, responda o motivo e mande para o backlog.
+  - **Sugestão:** corrija se for trivial; senão, backlog.
+  - Problema que já existia antes do PR vai para o backlog e nunca abre um ciclo novo no mesmo PR.
 - **Laço:** a mesma correção falhando duas vezes volta para quem orquestra, sem terceira tentativa.
 - **Comunicação:** mensagem só para quem precisa agir, relatório curto com evidência. Ao dono, só decisões, merges,
   releases e bloqueios.

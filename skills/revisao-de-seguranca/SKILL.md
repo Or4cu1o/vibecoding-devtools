@@ -21,8 +21,9 @@ esta skill só entra no nível Alto (regra `processo-por-risco`) e só com as su
    | Segredos e infraestrutura | `superficies/segredos-e-infra.md` | tokens e chaves, comandos de admin, subprocessos, downloads, dependências, Docker, CI |
 
 3. **Contrato:** copie os itens que se aplicam como critérios de pronto. **Modelo de ameaça:** só dessas superfícies.
-4. **Revisão:** para cada item aplicável, Pass ou achado com severidade, `arquivo:linha`, cenário de abuso e correção.
-5. **Triagem:** Crítico e Alto bloqueiam sempre; Médio bloqueia em dinheiro, contas e dados pessoais; Baixo vai ao backlog.
+4. **Revisão:** para cada item aplicável, Pass ou achado com gravidade (Crítico, Maior, Menor ou Sugestão),
+   `arquivo:linha`, cenário de abuso e correção.
+5. **Triagem:** siga **Achados** na regra `processo-por-risco`. Como esta skill só entra no nível Alto, Menor também bloqueia.
 6. Falha ainda não corrigida nunca é descrita em issue, PR, commit ou documento público.
 
 ## Ferramentas
