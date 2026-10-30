@@ -46,7 +46,8 @@ Mark keys that exit, suspend, change modes or approve actions.
 
 ## Built-in capabilities
 
-Ask the agent to list its tools by exact name without running any, and read `/skills`. Keep only what ships with the CLI: leave out Maestri's skills and anything from plugins the user installed.
+Ask the agent to list its tools by exact name without running any, and read `/skills`. Keep only what ships with the
+CLI: leave out Maestri's skills and anything from plugins the user installed.
 
 | Need | How |
 |---|---|

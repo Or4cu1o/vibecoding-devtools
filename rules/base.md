@@ -6,9 +6,9 @@ Valem em todo projeto e em todo nível de risco. Em conflito com regras de proce
   (`gitleaks git`) antes de todo commit.
 - **Git:** branch `tipo/nome-curto` a partir da main, Conventional Commits, merge commit. Nunca push direto na main, nunca
   force-push, nunca reescrever histórico compartilhado. Push, PR e merge só com o OK do dono.
-- **Ações destrutivas ou externas** (apagar dados ou repositórios, deploy, publicar pacote, tag de release, mudar segredos de
-  CI ou configurações do GitHub): só com OK explícito do dono. Depois do OK, quem tem a função executa; não devolve o
-  comando para o dono rodar.
+- **Ações destrutivas ou externas** (apagar dados ou repositórios, deploy, publicar pacote, tag de release, mudar
+  segredos de CI ou configurações do GitHub): só com OK explícito do dono. Depois do OK, quem tem a função executa; não
+  devolve o comando para o dono rodar.
 - **Dependências:** o gerenciador do lockfile do repositório (pnpm por padrão; Python via uv, nunca pip global). Confira
   licença e manutenção antes de adicionar um pacote.
 - **Design de interface:** as decisões visuais ficam com o impeccable; as regras de engenharia web cuidam da qualidade, não

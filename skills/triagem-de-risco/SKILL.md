@@ -23,7 +23,7 @@ Siga a regra `processo-por-risco` e a regra `testes`.
    No nível Alto, chame a skill `revisao-de-seguranca` só com as superfícies tocadas.
 6. Responda neste formato, em no máximo 8 linhas:
 
-```
+```text
 Nível: <Baixo|Médio|Alto>: <motivo em uma frase, citando o arquivo que decidiu>
 Áreas: <front/back/infra e quem faz cada uma>
 Contrato: <nenhum | o próprio pedido | uma página>

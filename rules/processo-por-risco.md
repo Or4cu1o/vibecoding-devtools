@@ -26,7 +26,8 @@ Correção de bug e mudança de comportamento existente que não toca superfíci
 
 - O pedido é o contrato: objetivo, arquivos e critério de pronto, em poucas linhas.
 - Bug: um teste de regressão, escrito antes (RED). Regra pura: testes antes. O resto: teste só onde as regras de teste pedem.
-- Uma revisão: quem orquestra lê o diff. Arquitetura só se a mudança cruza módulos; segurança só se encosta numa superfície Alta.
+- Uma revisão: quem orquestra lê o diff. Arquitetura só se a mudança cruza módulos; segurança só se encosta numa
+  superfície Alta.
 - Pronto = Baixo + essa revisão.
 
 ### Alto
@@ -54,8 +55,8 @@ sessão, permissões e ações administrativas; segredos e tokens; entrada exter
   ou **Sugestão** (o nitpick da revisão automática). Baixo, Médio e Alto são só níveis de risco da tarefa, nunca de achado.
   Esta é a única fonte da regra de bloqueio; skills e outras regras apontam para cá.
   - Segredo exposto, **Crítico** e **Maior**: bloqueiam sempre.
-  - **Menor:** bloqueia quando a tarefa é de nível Alto ou quando o próprio PR introduziu o problema. Fora disso, corrija se
-    for trivial; senão, responda o motivo e mande para o backlog.
+  - **Menor:** bloqueia quando a tarefa é de nível Alto ou quando o próprio PR introduziu o problema. Fora disso,
+    corrija se for trivial; senão, responda o motivo e mande para o backlog.
   - **Sugestão:** corrija se for trivial; senão, backlog.
   - Problema que já existia antes do PR vai para o backlog e nunca abre um ciclo novo no mesmo PR.
 - **Laço:** a mesma correção falhando duas vezes volta para quem orquestra, sem terceira tentativa.

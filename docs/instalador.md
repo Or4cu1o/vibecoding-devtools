@@ -8,8 +8,9 @@ instalador, nunca como plugin (veja `docs/compatibilidade-clis.md`, seção Plug
 
 ## Decisões
 
-- **Linguagem:** Node, no instalador e nos hooks. ECC e Impeccable já se instalam por `npx`, então o Node é pré-requisito de
-  qualquer forma, e no Windows o `python3` pode ser só o atalho da Microsoft Store. O ECC exige Node ≥ 18.
+- **Linguagem:** Node, no instalador e nos hooks. ECC e Impeccable já se instalam por `npx`, então o Node é
+  pré-requisito de qualquer forma, e no Windows o `python3` pode ser só o atalho da Microsoft Store. O ECC exige Node ≥
+  18.
 - **CLIs suportadas:** Claude Code, Codex e Antigravity. O Claude Code é a fonte; as outras recebem conversões.
 - **Escopo:** global por padrão (vale em todo projeto); o usuário pode escolher por projeto no painel.
 - **Terceiros:** ECC e Impeccable vêm da fonte oficial, na versão fixada em `instalador/terceiros.json`. O kit não guarda
@@ -20,8 +21,8 @@ instalador, nunca como plugin (veja `docs/compatibilidade-clis.md`, seção Plug
 ## Entrada
 
 `npx github:Or4cu1o/vibecoding-devtools#v<versão>`: o npm baixa o repositório na tag e roda o instalador, sem publicar
-pacote. A tag fixa a versão, como a superfície `segredos-e-infra` da skill `revisao-de-seguranca` exige para downloads. Nada de
-`curl | bash`.
+pacote. A tag fixa a versão, como a superfície `segredos-e-infra` da skill `revisao-de-seguranca` exige para downloads.
+Nada de `curl | bash`.
 
 ## Fluxo
 
@@ -40,8 +41,8 @@ pacote. A tag fixa a versão, como a superfície `segredos-e-infra` da skill `re
    - Maestri: instalar `maestri-protocolo`, `maestri-protocol` e `maestri-agent-cli`?
 5. **Resumo:** lista cada arquivo e comando que vai rodar (dry-run) e pede confirmação.
 6. **Instalação:** terceiros primeiro, depois o kit. Para em qualquer erro, sem deixar instalação pela metade sem aviso.
-7. **Estado:** grava o que instalou e onde (`~/.vibecoding-devtools/estado.json`), para atualizar e desinstalar só o que é
-   do kit.
+7. **Estado:** grava o que instalou e onde (`~/.vibecoding-devtools/estado.json`), para atualizar e desinstalar só o que
+   é do kit.
 8. **Relatório:** o que foi instalado em cada CLI e o que ficou para o usuário fazer (por exemplo, aprovar hooks no
    `/hooks` do Codex).
 
