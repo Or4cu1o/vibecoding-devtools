@@ -5,8 +5,11 @@ versões em [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+## [0.0.1] - 2026-10-29
+
 ### Adicionado
 
+- `README.md` com o conteúdo do kit.
 - Rules: `base`, `processo-por-risco`, `testes`, `modelos-por-risco`, `contexto-sob-demanda` e `maestri-protocolo`.
 - Skills: `triagem-de-risco`, `revisao-de-seguranca` (superfícies dinheiro e valores, contas e dados, entradas e serviços,
   segredos e infraestrutura), `maestri-protocol` e `maestri-agent-cli` (referências para Antigravity, Claude Code e Codex).
