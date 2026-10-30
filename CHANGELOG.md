@@ -5,6 +5,16 @@ versões em [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Unreleased]
 
+### Adicionado
+
+- CI no GitHub Actions: markdownlint, validação da estrutura do kit (`scripts/validar-kit.mjs`) e varredura de segredos
+  com gitleaks. Actions fixadas por SHA e gitleaks com hash conferido.
+- `CLAUDE.md` com as convenções e a verificação para quem trabalha no kit.
+
+### Alterado
+
+- Markdown dentro do limite de 120 colunas, com a linguagem em todo bloco de código.
+
 ## [0.0.1] - 2026-10-29
 
 ### Adicionado
