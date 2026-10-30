@@ -29,5 +29,6 @@ O mesmo que o CI roda, antes de todo commit:
 ```bash
 npx markdownlint-cli2@0.24.0 "**/*.md"
 node scripts/validar-kit.mjs
+npm test
 gitleaks git --no-banner
 ```

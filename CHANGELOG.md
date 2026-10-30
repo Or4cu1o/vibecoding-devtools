@@ -10,6 +10,9 @@ versões em [SemVer](https://semver.org/lang/pt-BR/).
 - CI no GitHub Actions: markdownlint, validação da estrutura do kit (`scripts/validar-kit.mjs`) e varredura de segredos
   com gitleaks. Actions fixadas por SHA e gitleaks com hash conferido.
 - `CLAUDE.md` com as convenções e a verificação para quem trabalha no kit.
+- Instalador, etapa 1: `node instalador/cli.mjs detectar` confere Node, git, Claude Code, Codex e Antigravity (versão,
+  pasta e se estão fora do PATH) e sugere os pacotes de rules do ECC pela stack do projeto. Testes rodam no CI em Linux
+  e Windows.
 
 ### Alterado
 

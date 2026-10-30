@@ -1,6 +1,14 @@
 # Instalador
 
-Especificação do instalador do vibecoding-devtools. Ainda não implementado; a primeira versão que funcionar será a 0.1.0.
+Especificação do instalador do vibecoding-devtools. Em implementação; a primeira versão que funcionar será a 0.1.0.
+
+| Etapa | Estado |
+|---|---|
+| 1. Detecção de Node, git, CLIs, PATH e stack (`node instalador/cli.mjs detectar`) | pronta |
+| 2. Painel | a fazer |
+| 3. Instalação do kit, com as conversões | a fazer |
+| 4. ECC e Impeccable | a fazer |
+| 5. Estado e `uninstall` | a fazer |
 
 Um comando prepara o ambiente de desenvolvimento com IA de ponta a ponta: confere o que existe na máquina, abre um painel
 para escolher o que instalar e instala o kit, o ECC e o Impeccable nas CLIs escolhidas. O kit é distribuído só pelo
