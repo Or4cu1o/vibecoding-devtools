@@ -1,0 +1,124 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+#
+# Modelo de .coderabbit.yaml (copie para a raiz do repositório e ajuste os TODO).
+# Referência: https://docs.coderabbit.ai/reference/configuration
+# Problema que resolve: revisão barulhenta (poemas, diagramas, sugestões de teste para subir cobertura) e cobrança de
+# regras genéricas que o projeto substituiu. Custo que evita: ciclos de PR gastos com comentários de pouco valor.
+
+language: pt-BR
+tone_instructions: >-
+  Revisor técnico objetivo, em pt-BR. Foco em bugs, segurança e regressões. Cite arquivo:linha, agrupe repetições
+  em um só comentário e não elogie.
+inheritance: false
+
+reviews:
+  profile: chill
+  # O bloqueio de merge é da proteção de branch; os checks abaixo só sinalizam.
+  request_changes_workflow: false
+  high_level_summary: true
+  review_status: true
+  collapse_walkthrough: true
+  changed_files_summary: false
+  sequence_diagrams: false
+  estimate_code_review_effort: false
+  poem: false
+  in_progress_fortune: false
+  suggested_reviewers: false
+  suggested_labels: false
+  auto_apply_labels: false
+
+  auto_review:
+    enabled: true
+    drafts: false
+    auto_incremental_review: true
+    base_branches:
+      - main
+    ignore_title_keywords:
+      - "WIP"
+      - "[skip review]"
+
+  path_filters:
+    # TODO: lockfiles, assets binários, vendor e arquivos gerados do projeto.
+    - "!**/*.min.js"
+    - "!**/*.min.css"
+
+  path_instructions:
+    - path: "**/*"
+      instructions: |
+        - `AGENTS.md`, `CLAUDE.md` e as regras do projeto prevalecem sobre regras genéricas (ECC). Não peça teste só
+          para subir cobertura nem TDD fora de correção de bug e regra pura.
+        - Siga o nível de risco do item: em mudança de texto, estilo, docs ou configuração, aponte só bug real.
+        - Nunca descreva em comentário público um detalhe explorável de vulnerabilidade; aponte o arquivo e peça o
+          relato privado.
+    # TODO: instruções por área (ex.: pastas de dinheiro, autenticação, dados pessoais) apontando a skill
+    # revisao-de-seguranca e o mapa de risco do projeto.
+
+  pre_merge_checks:
+    docstrings:
+      mode: off
+    title:
+      mode: warning
+      requirements: >-
+        Conventional Commits: tipo (feat, fix, refactor, docs, test, chore, perf, ci), escopo opcional e descrição curta.
+    description:
+      mode: warning
+    issue_assessment:
+      mode: off
+    custom_checks:
+      - name: "CHANGELOG atualizado"
+        mode: warning
+        instructions: |
+          Se o PR altera código de produção, Dockerfile ou dependências (não só testes ou documentação), o diff precisa
+          incluir uma entrada em `[Unreleased]` do CHANGELOG. Passa se houver a entrada ou se o PR não toca esses caminhos.
+      - name: "Sem segredos nem detalhe explorável"
+        mode: error
+        instructions: |
+          Falha se o diff adiciona a um arquivo público um segredo real (token, chave de API, senha, URL de webhook,
+          string de conexão com credenciais) ou o passo a passo explorável de uma vulnerabilidade ainda não corrigida.
+          Valores sintéticos claramente falsos em testes e variáveis vazias em `.env.example` passam.
+
+  finishing_touches:
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+
+  tools:
+    # TODO: ligue os linters da stack (ruff, eslint, biome, golangci-lint) e desligue os redundantes.
+    actionlint:
+      enabled: true
+    hadolint:
+      enabled: true
+    yamllint:
+      enabled: true
+    shellcheck:
+      enabled: true
+    markdownlint:
+      enabled: true
+    gitleaks:
+      enabled: true
+    osvScanner:
+      enabled: true
+    zizmor:
+      enabled: true
+    github-checks:
+      enabled: true
+    languagetool:
+      enabled: false
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      # TODO: as regras do projeto, por exemplo ".claude/rules/<projeto>/*.md".
+  learnings:
+    scope: local
+  issues:
+    scope: local
+  pull_requests:
+    scope: local
