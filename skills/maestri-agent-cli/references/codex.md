@@ -71,7 +71,9 @@ Send the text, then `\n` in a separate `--raw` call.
 
 - `/model` → **Select Model and Effort**: numbered models, `enter select · esc back`. The list depends on the plan (on a
   Free account: GPT-6-Luna, GPT-5.6-Terra, GPT-5.6-Luna).
-- At launch: `codex --model <id>`.
+- **Exact ids:** `codex debug models` prints the account's catalog as JSON: `slug` is the id (e.g. `gpt-6.1-sol`) and
+  `supported_reasoning_levels` lists the efforts. Launch with
+  `codex --model <slug> -c model_reasoning_effort=<low|medium|high|...>`.
 
 ## Quota
 

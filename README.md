@@ -7,8 +7,16 @@ revisões.
 O kit integra o [ECC](https://github.com/affaan-m/ECC) e o [Impeccable](https://github.com/pbakaus/impeccable),
 instalados das fontes oficiais.
 
-> **Estado:** versão inicial. Do instalador, só a detecção existe (`node instalador/cli.mjs detectar`); o resto está
-> especificado em [`docs/instalador.md`](docs/instalador.md).
+## Instalação
+
+```bash
+npx github:Or4cu1o/vibecoding-devtools#v<versão>              # painel
+npx github:Or4cu1o/vibecoding-devtools#v<versão> --dry-run    # só mostra o plano
+npx github:Or4cu1o/vibecoding-devtools#v<versão> desinstalar  # remove só o que o kit instalou
+```
+
+O instalador detecta Claude Code, Codex e Antigravity, mostra o plano e só grava depois da confirmação. Detalhes em
+[`docs/instalador.md`](docs/instalador.md).
 
 ## Conteúdo
 

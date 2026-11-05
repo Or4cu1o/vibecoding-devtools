@@ -21,6 +21,10 @@ cada versão nova de uma das CLIs que mude carregamento, hooks ou plugins.
 
 Nenhuma das três traz Node ou Python. Depois de instalar, confira se a pasta do binário está no `PATH`.
 
+Para apontar uma CLI para outra pasta de configuração (por exemplo, uma casa de teste), use a variável dela: no Windows,
+o Codex ignora `HOME` e `USERPROFILE` e só segue `CODEX_HOME` (verificado com a 0.166); no Claude Code,
+`CLAUDE_CONFIG_DIR`.
+
 ## Arquivo de instruções
 
 | | Claude Code | Codex | Antigravity |

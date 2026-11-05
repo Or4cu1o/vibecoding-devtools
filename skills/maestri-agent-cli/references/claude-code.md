@@ -79,7 +79,9 @@ default for new sessions is **Default permission mode** in `/config`.
 - `/model`, Enter → **Select model**. ↑/↓ picks, ←/→ sets effort.
 - **Enter saves the model as the default for every new session.** Press `s` to use it in this session only. Esc cancels
   (`⎿ Kept model as <model>`).
-- At launch: `claude --model <id> --effort <level>`. `/effort` sets effort alone.
+- **Exact ids:** `claude --help` documents `--model` with an alias for the latest model (`opus`, `sonnet`, `fable`) or a
+  full name such as `claude-opus-5-5`, `claude-sonnet-5-5` or `claude-haiku-5-5`, and `--effort` with `low`, `medium`,
+  `high`, `xhigh` or `max`. Presets in `maestri preset list` show working commands. `/effort` sets effort alone.
 
 ## Settings (`/config`)
 

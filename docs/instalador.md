@@ -1,14 +1,14 @@
 # Instalador
 
-Especificação do instalador do vibecoding-devtools. Em implementação; a primeira versão que funcionar será a 0.1.0.
+Especificação do instalador do vibecoding-devtools. As cinco etapas estão implementadas e testadas em Linux e Windows.
 
 | Etapa | Estado |
 |---|---|
 | 1. Detecção de Node, git, gitleaks, CLIs, PATH e stack (`node instalador/cli.mjs detectar`) | pronta |
-| 2. Painel | a fazer |
-| 3. Instalação do kit, com as conversões | a fazer |
-| 4. ECC e Impeccable | a fazer |
-| 5. Estado e `uninstall` | a fazer |
+| 2. Painel e flags (`instalar`, `--dry-run`, `--yes`) | pronta |
+| 3. Instalação do kit, com as conversões | pronta |
+| 4. ECC e Impeccable | pronta |
+| 5. Estado e `desinstalar` | pronta |
 
 Um comando prepara o ambiente de desenvolvimento com IA de ponta a ponta: confere o que existe na máquina, abre um
 painel para escolher o que instalar e instala o kit, o ECC e o Impeccable nas CLIs escolhidas. O kit é distribuído só
@@ -26,6 +26,7 @@ pelo instalador, nunca como plugin (veja `docs/compatibilidade-clis.md`, seção
 - **Rules do ECC:** quem copia é o nosso instalador, nas três CLIs, a partir do ECC na versão fixada. O instalador do
   ECC instala o resto (agentes, comandos, skills e, se pedido, hooks), sem o módulo de rules.
 - **Telemetria do Impeccable:** desligada por padrão (`DO_NOT_TRACK=1` e `npx impeccable@4.8.0 telemetry off`).
+- **Hooks de terceiros:** os do ECC e os do Impeccable vêm desligados por padrão; o painel pergunta.
 - **Maestri:** só por escolha no painel ou pela flag `--maestri`.
 - **Manutenção:** `uninstall` na 0.1.0; `update` depois. Os dois usam o estado gravado na instalação.
 
@@ -64,7 +65,57 @@ npx github:Or4cu1o/vibecoding-devtools#v0.1.0 uninstall   # remove só o que o k
 8. **Relatório:** o que foi instalado em cada CLI e o que ficou para o usuário fazer (por exemplo, aprovar hooks no
    `/hooks` do Codex).
 
-Modo sem painel: as mesmas escolhas por flags e `--yes`, para reinstalar ou rodar em CI.
+Modo sem painel: as mesmas escolhas por flags e `--yes`, para reinstalar ou rodar em CI (`--help` lista as flags).
+Códigos de saída: `0` sucesso; `1` quando algo foi pulado, bloqueado ou falhou; `2` erro de uso.
+
+## Arquitetura
+
+O instalador monta um **plano** (lista de ações) a partir das escolhas e da detecção, mostra o plano e só então o
+executa. Montar o plano não grava nada, o que dá o dry-run, os testes e a desinstalação. Um dono por arquivo:
+
+| Arquivo | Responsabilidade |
+|---|---|
+| `detectar.mjs` | Etapa 1: Node, git, gitleaks, CLIs, PATH e stack (pronto). |
+| `conversao.mjs` | Funções puras: rule do Claude Code para Antigravity (`trigger:`), rules para o bloco do Codex, pacote do ECC achatado com referências reescritas. |
+| `plano.mjs` | `montarPlano(escolhas, deteccao, caminhos)`: devolve as ações, sem gravar nada. |
+| `terceiros.mjs` e `terceiros.json` | Versões fixadas e comandos do ECC e do Impeccable (instalar e desinstalar); obter o ECC na tag para copiar as rules. |
+| `estado.mjs` | Ler e gravar `~/.vibecoding-devtools/estado.json`. |
+| `executar.mjs` | Aplicar o plano (ou só listar, no dry-run), registrar no estado e desinstalar pelo estado. |
+| `painel.mjs` | Painel com `@clack/prompts` e, sem painel, as mesmas escolhas por flags. |
+| `cli.mjs` | Comandos `detectar`, `instalar` (padrão) e `desinstalar`; flags `--dry-run`, `--yes`, `--json`. |
+
+**Ações do plano**, cada uma com `dono` (`kit`, `ecc` ou `impeccable`) e `cli`:
+
+- `copiar`: `origem` para `destino` (arquivo ou pasta).
+- `escrever`: `conteudo` em `destino`.
+- `bloco`: `conteudo` entre marcadores `<!-- vibecoding-devtools:inicio -->` e `<!-- vibecoding-devtools:fim -->` em
+  `destino`, sem tocar o resto do arquivo.
+- `comando`: `cmd` com `args` (lista, nunca uma string para o shell), em `cwd`, com `env` extra.
+
+**O que já está instalado** (lido na detecção, antes do plano):
+
+- Kit: versão e itens do `estado.json`, se existir.
+- Skills com o mesmo nome nas pastas de cada CLI, instaladas por outra fonte.
+- Plugins de cada CLI (`claude plugin list`, `codex plugin list`, `agy plugin list --json`), para achar o ECC ou o
+  Impeccable instalado por plugin.
+- ECC e Impeccable instalados por `npx`: o estado de instalação de cada um e a versão.
+
+Com isso, o plano marca cada ação como **nova**, **igual** (pula), **atualizar** (item do kit ou de terceiro em outra
+versão) ou **conflito** (existe e não é do kit: pula e avisa). Falha ou demora ao ler os plugins de uma CLI nunca
+autoriza instalar: o terceiro fica bloqueado com aviso. Um terceiro já instalado por outro método (plugin em vez
+de `npx`) não é instalado de novo: o relatório diz qual método está ativo.
+
+**Regras de execução:**
+
+- Nunca sobrescreve arquivo que não foi o kit que criou: registra conflito no relatório e pula, salvo `--force`.
+- Registra no estado cada arquivo criado com o hash do conteúdo, cada bloco e cada comando de terceiros.
+- Desinstalar remove só o que está no estado e não foi alterado depois (hash igual); remove os blocos; roda o
+  `uninstall` do ECC; lista o que o Impeccable criou para o usuário confirmar. Arquivo alterado: avisa e mantém.
+- Toda a casa do usuário vem de `caminhos.home` (e as pastas de cada CLI derivam dela), para os testes rodarem numa
+  pasta temporária.
+
+**Escolhas** (o que o painel ou as flags devolvem): CLIs alvo; escopo (`global` ou `projeto`, com a raiz); pacote
+Maestri sim ou não; ECC (CLIs, hooks sim ou não, pacotes da stack); Impeccable (CLIs).
 
 ## O que vai em cada CLI
 
@@ -110,7 +161,8 @@ No escopo de projeto, as mesmas peças vão para `.claude/`, `.codex/`, `.agents
 - Versão fixada: `impeccable@4.8.0` no npm (tag `cli-v4.8.0` em `github.com/pbakaus/impeccable`), em todos os comandos.
 - `npx impeccable@4.8.0 install --providers=<claude,codex,antigravity> --scope=<project|global> -y`. Sem TTY, passe
   sempre `-y` e `--providers`, senão o comando espera resposta.
-- Precisa rodar na raiz de um projeto com git. Não tem desinstalação: o estado do instalador registra o que ele criou.
+- No escopo projeto, roda na raiz do projeto; no global, a casa do usuário serve de pasta de trabalho (verificado com a
+  4.8.0, fora de um repositório git). Não tem desinstalação: o relatório avisa o que ele criou.
 - No Antigravity entra só a skill, sem hook. Grava em `.agent/`, enquanto o ECC usa `.agents/`: confira se a skill não
   carrega duas vezes.
 

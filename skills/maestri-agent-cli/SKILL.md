@@ -111,7 +111,8 @@ Answering another agent's permission prompt approves an action on the user's beh
 ## 5. Configure, safest first
 
 1. **Launch flags**: model, effort and permission flags in the preset command, applied with
-   `maestri recruit --replace "Name" --command "..."` or a preset.
+   `maestri recruit "Name" --command "..."` (or `--replace "Name"`) or a preset. Each reference's **Model and effort**
+   says where the CLI lists its exact model ids and how to pass them: never guess an id.
 2. **The CLI's settings file**, when the reference names it.
 3. **The TUI menu** (`/model`, `/config`...) through `--raw`, step by step.
 

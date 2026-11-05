@@ -59,6 +59,10 @@ esc to cancel
 
 ## Model and effort
 
+- **Exact ids:** `agy models` prints one `<id>` and name per line for the account, e.g. `gemini-3.8-flash-low`,
+  `gemini-4-argon-high`, `claude-sonnet-5-5-medium`; the effort is part of the id. Launch with
+  `agy --model <id> --effort <low|medium|high>` (e.g. in `maestri recruit --command`).
+
 1. `/model`, Enter → **Switch Model** picker.
 2. ↑/↓ picks the model, ←/→ sets effort (low, medium, high), Enter confirms, Esc goes back.
 3. Confirmation in the history: `⎿ Model set to <model> (<Effort>)`.
