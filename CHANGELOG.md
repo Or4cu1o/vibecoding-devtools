@@ -5,6 +5,8 @@ Changelog](https://keepachangelog.com/pt-BR/1.1.0/); versões em [SemVer](https:
 
 ## [Unreleased]
 
+## [0.0.2] - 2026-11-04
+
 ### Adicionado
 
 - CI no GitHub Actions: markdownlint, validação da estrutura do kit (`scripts/validar-kit.mjs`) e varredura de segredos
