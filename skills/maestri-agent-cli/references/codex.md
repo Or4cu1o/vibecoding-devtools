@@ -1,6 +1,7 @@
 # OpenAI Codex CLI
 
-Verified live on Codex 0.164.0, Windows, ChatGPT Free account (2026-10-27).
+Verified live on Codex 0.164.0, Windows, ChatGPT Free account (2026-10-27); quota windows and `/clear` on 0.166.0, paid
+plan (2026-11-04).
 
 ## Identify
 
@@ -36,7 +37,8 @@ Send the text, then `\n` in a separate `--raw` call.
   2. **Approve for me**: asks only for actions detected as potentially unsafe.
   3. **Full Access**: edits outside the workspace and uses the internet without asking.
   4. **Read Only**: reads the workspace; asks for edits and internet access.
-- `/status` may show a mode not in that list (here `Workspace (granular)`). Read Only shows as `Read Only (Ask for approval)`.
+- `/status` may show a mode not in that list (here `Workspace (granular)`). Read Only shows as
+  `Read Only (Ask for approval)`.
 - **Changing the mode gives no confirmation screen**, only a history line `• Permission selection requested: <mode>`,
   and options 3 (Full Access) and 4 (Read Only) sit next to each other. Run `/status` after every change and check
   `Permissions:`.
@@ -67,14 +69,18 @@ Send the text, then `\n` in a separate `--raw` call.
 
 ## Model and effort
 
-- `/model` → **Select Model and Effort**: numbered models (GPT-6-Luna, GPT-5.6-Terra, GPT-5.6-Luna on a Free account),
-  `enter select · esc back`.
+- `/model` → **Select Model and Effort**: numbered models, `enter select · esc back`. The list depends on the plan (on a
+  Free account: GPT-6-Luna, GPT-5.6-Terra, GPT-5.6-Luna).
 - At launch: `codex --model <id>`.
 
 ## Quota
 
-- `/status` shows the limit, e.g. `Monthly limit: [bar] 100% left (resets 15:45 on 26 Nov)`, and points to <https://chatgpt.com/settings/usage>.
-- `/usage` → **Usage**: `View analytics` (usage history) and `Redeem reset` (use a usage-limit reset when one is available).
+- `/status` shows the limit as **percent left**, e.g. `Monthly limit: [bar] 100% left (resets 15:45 on 26 Nov)` on a
+  Free account, and points to <https://chatgpt.com/settings/usage>. On a paid plan (Codex 0.166) it shows a five-hour
+  and a weekly limit, each with percent left and reset time.
+- Context: the docs say `/status` also shows token usage; not yet verified live.
+- `/usage` → **Usage**: `View analytics` (usage history) and `Redeem reset` (use a usage-limit reset when one is
+  available).
 - Not yet observed: the limit-reached screen.
 
 ## Keys
@@ -92,9 +98,10 @@ Send the text, then `\n` in a separate `--raw` call.
 
 ## Slash commands for the Maestro
 
-`/status`, `/model`, `/permissions`, `/approve`, `/usage`, `/config`, `/compact`, `/new`, `/resume`, `/plan`, `/side`
-(side conversation in a fork), `/diff`, `/warnings`, `/mcp`, `/hooks`, `/skills`, `/daemon`. Destructive or stopping:
-`/delete` (permanently deletes the session), `/archive`, `/logout`, `/quit` and `/exit`: only when the user asks.
+`/status`, `/model`, `/permissions`, `/approve`, `/usage`, `/config`, `/compact`, `/clear` (clears the terminal and
+starts a new chat), `/new`, `/resume`, `/plan`, `/side` (side conversation in a fork), `/diff`, `/warnings`, `/mcp`,
+`/hooks`, `/skills`, `/daemon`. Destructive or stopping: `/delete` (permanently deletes the session), `/archive`,
+`/logout`, `/quit` and `/exit`: only when the user asks.
 
 ## Built-in capabilities
 

@@ -6,6 +6,7 @@ Verified live on Claude Code 2.1.302, Windows, Claude Max account (2026-10-27).
 
 - Launch command: `claude`, e.g. `claude --model claude-haiku-5-5 --effort low`.
 - Banner: `Claude Code v<version>`, model and effort, plan (`Claude Max`), working folder.
+- Account: `/config` → **Status** tab (login method and account). The banner shows only the plan.
 - Input prompt is `❯` (not `>`).
 - Footer shows the permission mode: `⏵⏵ auto mode on (shift+tab to cycle)`, `⏸ manual mode on · ? for shortcuts`,
   `⏵⏵ accept edits on`, `⏸ plan mode on`. Effort shows above the input: `○ low · /effort`.
@@ -95,10 +96,14 @@ default for new sessions is **Default permission mode** in `/config`.
 
 ## Quota
 
-- `/config` → **Usage** tab: cost and tokens of the session, then limits with a bar, the percent used and the reset
-  time: current session, current week (all models), current week per model family.
+- `/config` → **Usage** tab (↑ from the list reaches the tabs, → three times from Settings): limits with a bar, the
+  **percent used** and the reset time, e.g. `Current week (all models) … 80% used · Resets Nov 6, 2am`. Windows:
+  current session (five hours), current week (all models), current week per model family. Below them, hints on what
+  drives usage (long contexts, always-on context). Usage credits are off unless turned on with `/usage-credits`.
+- `/context`: how much of the context window is in use. Not yet verified live on this version: read the screen.
 - **Continue automatically at usage limit** in `/config` lets the agent keep going when a limit is hit.
-- Recovery: wait for the reset, or move the agent to another account with `maestri recruit --replace "Name" --account "Other"`.
+- Recovery: wait for the reset, or move the agent to another account with
+  `maestri recruit --replace "Name" --account "Other"`.
 - Not yet observed: the limit-reached screen.
 
 ## Keys
@@ -119,9 +124,9 @@ default for new sessions is **Default permission mode** in `/config`.
 
 ## Slash commands for the Maestro
 
-`/model`, `/effort`, `/config` (settings, status, usage), `/permissions`, `/context`, `/compact`, `/clear`, `/resume`,
-`/rewind`, `/btw` (side question), `/mcp`, `/hooks`, `/help`. `/exit`, `/logout` and `/login` stop the agent or change
-its login: only when the user asks.
+`/model`, `/effort`, `/config` (settings, status, usage), `/permissions`, `/context`, `/compact [what to keep]`,
+`/clear`, `/resume`, `/rewind`, `/btw` (side question), `/mcp`, `/hooks`, `/help`. `/exit`, `/logout` and `/login` stop
+the agent or change its login: only when the user asks.
 
 ## Built-in capabilities
 

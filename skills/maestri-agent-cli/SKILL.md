@@ -1,6 +1,6 @@
 ---
 name: maestri-agent-cli
-description: Drive another agent's terminal on the Maestri canvas when it runs a CLI different from yours (Antigravity, Claude Code, and others). Load it before operating an agent's TUI with `maestri ask --raw` or reading it with `maestri check`: answering a permission prompt, switching model or effort, opening its settings, checking its quota, or recovering an agent that is stuck, waiting, out of quota, logged out or erroring.
+description: Drive another agent's terminal on the Maestri canvas when it may run a CLI or account different from yours (Antigravity, Claude Code, Codex, and others). Load it when you recruit an agent, before you operate an agent's TUI with `maestri ask --raw` (answering a permission prompt, switching model or effort, opening its settings, checking its quota), and when an agent is stuck, waiting, out of quota, logged out or erroring.
 user-invocable: true
 ---
 
@@ -13,10 +13,42 @@ The agents on the canvas may run different CLIs, on different accounts. Each CLI
 commands, permission prompts and quota rules. What works in your own CLI can do something else in theirs: a key that
 dismisses a dialog in one can exit the agent in another. Never assume the other agent works like you.
 
-## 1. Identify the CLI first
+## 1. Know each agent's CLI and account
 
-`maestri list` may show only the agent's name, without its CLI or account. Read the screen with
-`maestri check "Agent Name"` and match it:
+`maestri list` may show only the agent's name, without its CLI or account. Keep them in a file of your own, `ledger.md`,
+under `## Agents`, one row per agent, and read it before you drive any agent. The `maestri-budget` skill adds the quota
+and model tables to the same file.
+
+```markdown
+## Agents
+
+| Agent | CLI | Account | Model |
+|---|---|---|---|
+| Hawk | Codex | Work | fixed |
+| Lynx | Antigravity | Default | managed |
+```
+
+- **Account** is the account name from `maestri preset list` when you know it (you recruited the agent); otherwise the
+  login or plan its screen shows. Agents on the same account share its quota.
+- **Model** is `fixed` unless the user tells you an Antigravity agent is a multi-model generalist under your control:
+  then it is `managed` (see the `maestri-budget` skill). Never change the model, effort or settings of a `fixed` agent
+  unless the user asks for that change.
+
+- **Where:** your session directory (the scratch or session folder your CLI gives you). If your CLI has none, use
+  `maestri-<your name>/ledger.md` in the system temp folder. It is your working record: never put it on the canvas or in
+  the project.
+- **When you recruit**, write the row right away: the CLI comes from the preset and the account from `--account` (or the
+  preset's own account, as `maestri preset list` prints it).
+- **For an agent you did not recruit**, identify it once from its screen (table below) and write the row. Where each CLI
+  shows the account is in its reference.
+- **Update the row** whenever you run `maestri recruit --replace` with another preset, command or account: that is how
+  an agent's CLI or account changes.
+- Use account names as `maestri preset list` prints them; never write an email, token or key in the file. Do not record
+  the model or effort: they change with restarts and pickers.
+- If the screen ever disagrees with the file, trust the screen and fix the file. In a new session the file may be gone:
+  rebuild it the same way.
+
+To identify an agent from its screen, read it with `maestri check "Agent Name"` and match it:
 
 | CLI | Signature on screen | Reference |
 |---|---|---|
@@ -26,6 +58,9 @@ dismisses a dialog in one can exit the agent in another. Never assume the other 
 
 Open the matching reference before pressing anything. If no signature matches, use `/help` or `?` on the agent and read
 the result before acting; to add a CLI, copy [references/_template.md](references/_template.md).
+
+CLIs update often. When a screen, menu or prompt does not match the reference, trust the screen: do not guess keys,
+back out with Esc, and tell the user the reference is out of date.
 
 Before delegating, check **Built-in capabilities** in the reference: which tools the agent has (web search, images,
 browser, subagents) and which commands help with the task (`/plan`, `/review`, `/btw`, `/goal`). Delegate a task to an
@@ -44,6 +79,8 @@ agent that has what it needs.
   highlighted value; follow the reference.
 - **Never send exit or suspend keys** (the reference lists them per CLI) unless the user asked to stop the agent.
 - **Clear typed text with Backspace (`\x7f`)**, not with keys that may interrupt or exit.
+- **Escapes apply to every `maestri ask`**, not only `--raw`: `\t` and `\n` inside a prompt become Tab and Enter. Write
+  Windows paths with forward slashes (`C:/teste/file.md`).
 - **Windows Git Bash:** an argument starting with `/` is rewritten into a Windows path (`/model` arrives as
   `C:/Program Files/Git/model`). Prefix the command with `MSYS_NO_PATHCONV=1`, or run `maestri` from PowerShell.
 
@@ -67,7 +104,7 @@ Answering another agent's permission prompt approves an action on the user's beh
 | Working | Wait. Never interrupt an agent that is still working. |
 | Waiting on a permission prompt | Section 3. |
 | Menu, panel or notice open | Esc until the input box is back, then resend if needed. |
-| Out of quota | Check the reference: switch to a model group with quota left, or move the agent with `maestri recruit --replace "Name" --account "Other"` (accounts from `maestri preset list`), or tell the user when it resets. |
+| Out of quota | Check the reference: switch to a model group with quota left, or ask the user to move the agent with `maestri recruit --replace "Name" --account "Other"` (Claude Code and Codex only; accounts from `maestri preset list`), or tell the user when it resets. Pacing quota so this does not happen is the `maestri-budget` skill. |
 | Logged out | Tell the user: logins are interactive and need them. |
 | Error | Read it, retry once if it is transient, otherwise report it to the user. |
 

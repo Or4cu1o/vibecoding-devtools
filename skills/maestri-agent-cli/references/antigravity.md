@@ -1,6 +1,7 @@
 # Antigravity CLI
 
-Verified live on Antigravity CLI 1.4.8, Windows, Google AI Pro account (2026-10-27).
+Verified live on Antigravity CLI 1.4.8, Windows, Google AI Pro account (2026-10-27); quota pools and `/context` on 1.4.9
+(2026-11-04).
 
 ## Identify
 
@@ -89,12 +90,18 @@ Telemetry, Notifications, Rendering Mode, Seasonal Themes, Show Active Tasks, Sh
 
 ## Quota
 
-- `/usage` (alias `quota`): quota per model group, each with a weekly and a five-hour limit and the time until it
-  refreshes. Esc closes it.
-  - **Gemini** group: Gemini Flash, Gemini Pro.
-  - **Claude and GPT** group: Claude Opus, Claude Sonnet, GPT-OSS.
-- Groups are separate: when one runs out, `/model` to a model of the other group can keep the agent working on the same
+- `/usage` (alias `quota`): quota per pool, shown as **percent remaining** (not used), with `Refreshes in <h>h <m>m`
+  once part of it is spent. The panel scrolls (PgDn `\e[6~`); Esc closes it. Pools on a Pro plan (1.4.9):
+  - **Gemini** group: Gemini Flash, Gemini Pro. Weekly and five-hour limits. Flash has the roomiest quota but makes
+    frequent mistakes in development work: verify everything it delivers (`maestri-budget`).
+  - **Claude and GPT** group: Claude Opus, Claude Sonnet, GPT-OSS. Weekly and five-hour limits.
+  - **Gemini 4 Argon**: its own weekly limit, separate from the Gemini group, with no five-hour window. It is small:
+    a few large tasks a week.
+- Pools are separate: when one runs out, `/model` to a model of another pool keeps the agent working on the same
   account.
+- Quota is spent in proportion to the cost of the tokens: shorter tasks and cheaper models last longer.
+- `/context`: tokens used of the model's window (e.g. `0/1.0M tokens (0.0%)`), split into user messages, agent
+  responses and tool calls. Esc closes it.
 - `/credits`: remaining G1 credits. With **Use AI Credits** on, the agent keeps going on credits after the quota ends;
   turning it on spends money, so ask the user.
 - Not yet observed: the quota-exhausted screen.
