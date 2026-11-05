@@ -1,6 +1,6 @@
 {
   "name": "vibecoding-devtools",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "description": "Kit de rules, skills, hooks e modelos para desenvolvimento com IA em Claude Code, Codex e Antigravity.",
   "license": "MIT",
   "private": true,
@@ -13,5 +13,8 @@
   },
   "scripts": {
     "test": "node --test \"instalador/**/*.test.mjs\""
+  },
+  "dependencies": {
+    "@clack/prompts": "1.8.1"
   }
 }

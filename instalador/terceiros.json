@@ -1,0 +1,16 @@
+{
+  "ecc": {
+    "pacote": "ecc-universal",
+    "versao": "2.2.3",
+    "repositorio": "https://github.com/affaan-m/ECC.git",
+    "tag": "v2.2.3",
+    "marketplace": "affaan-m/ECC@v2.2.3",
+    "plugin": "ecc@ecc",
+    "modulos": ["agents-core", "commands-core", "platform-configs", "workflow-quality"],
+    "moduloHooks": "hooks-runtime"
+  },
+  "impeccable": {
+    "pacote": "impeccable",
+    "versao": "4.8.0"
+  }
+}
