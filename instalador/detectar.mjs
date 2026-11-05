@@ -37,7 +37,10 @@ export function procurarEm(bin, pastas, { env = process.env, plataforma = proces
 }
 
 export function pastasDoPath(env = process.env) {
-  return (env.PATH ?? env.Path ?? "").split(path.delimiter).filter(Boolean);
+  return (env.PATH ?? env.Path ?? "")
+    .split(path.delimiter)
+    .map((p) => p.replace(/^"(.*)"$/, "$1"))
+    .filter(Boolean);
 }
 
 // Primeira versão x.y.z na saída de `--version`.
@@ -56,9 +59,11 @@ function rodar(caminho, args) {
   return { ok: r.status === 0, saida: `${r.stdout ?? ""}${r.stderr ?? ""}`.trim() };
 }
 
+// Roda `--version`: o binário existir no disco não basta, ele precisa responder.
 export function versaoDe(caminho) {
   const r = rodar(caminho, ["--version"]);
-  return r.ok ? extrairVersao(r.saida) : null;
+  if (!r.ok) return { ok: false, erro: r.erro ?? (r.saida || "--version falhou") };
+  return { ok: true, versao: extrairVersao(r.saida) };
 }
 
 // Uma CLI: está no PATH? Se não, está numa pasta conhecida (instalada, mas fora do PATH)?
@@ -69,14 +74,10 @@ export function detectarCli(cli, { env = process.env, plataforma = process.platf
   const caminho = noPath ?? procurarEm(cli.bin, pastas, { env, plataforma });
   const instalar = ehWindows(plataforma) ? cli.instalar.win : cli.instalar.unix;
   if (!caminho) return { id: cli.id, nome: cli.nome, estado: "ausente", instalar };
-  return {
-    id: cli.id,
-    nome: cli.nome,
-    estado: noPath ? "ok" : "fora-do-path",
-    caminho,
-    pasta: path.dirname(caminho),
-    versao: versaoDe(caminho),
-  };
+  const v = versaoDe(caminho);
+  const base = { id: cli.id, nome: cli.nome, caminho, pasta: path.dirname(caminho) };
+  if (!v.ok) return { ...base, estado: "erro", erro: v.erro };
+  return { ...base, estado: noPath ? "ok" : "fora-do-path", versao: v.versao };
 }
 
 export function verificarNode(versao = process.versions.node) {
@@ -84,9 +85,12 @@ export function verificarNode(versao = process.versions.node) {
   return { versao, ok: maior >= NODE_MINIMO, minimo: NODE_MINIMO };
 }
 
-export function verificarGit({ env = process.env, plataforma = process.platform } = {}) {
-  const caminho = procurarEm("git", pastasDoPath(env), { env, plataforma });
-  return caminho ? { ok: true, caminho, versao: versaoDe(caminho) } : { ok: false };
+// Ferramenta de linha de comando que precisa estar no PATH e responder a `--version` (git, gitleaks).
+export function verificarFerramenta(bin, { env = process.env, plataforma = process.platform } = {}) {
+  const caminho = procurarEm(bin, pastasDoPath(env), { env, plataforma });
+  if (!caminho) return { ok: false, erro: "não encontrado no PATH" };
+  const v = versaoDe(caminho);
+  return v.ok ? { ok: true, caminho, versao: v.versao } : { ok: false, caminho, erro: v.erro };
 }
 
 // Pacotes de rules do ECC sugeridos pelos arquivos do projeto.
@@ -160,7 +164,13 @@ function arquivosDoProjeto(raiz, profundidade = 2) {
 
 export function detectarProjeto(cwd = process.cwd()) {
   const r = spawnSync("git", ["rev-parse", "--show-toplevel"], { cwd, encoding: "utf8", windowsHide: true });
-  if (r.status !== 0) return { emRepositorio: false };
+  if (r.error) return { emRepositorio: false, motivo: "git não roda" };
+  if (r.status !== 0) {
+    // 128 também aparece quando o git recusa o repositório (por exemplo, "dubious ownership"): mostre o motivo.
+    const erro = (r.stderr ?? "").trim().split("\n")[0];
+    const fora = /not a git repository/i.test(erro);
+    return { emRepositorio: false, motivo: fora ? "fora de um repositório git" : erro || "git falhou" };
+  }
   const raiz = path.resolve(r.stdout.trim());
   return { emRepositorio: true, raiz, stacks: stacksDe(arquivosDoProjeto(raiz)) };
 }
@@ -169,7 +179,8 @@ export function detectarTudo({ cwd = process.cwd(), env = process.env, plataform
   return {
     plataforma,
     node: verificarNode(),
-    git: verificarGit({ env, plataforma }),
+    git: verificarFerramenta("git", { env, plataforma }),
+    gitleaks: verificarFerramenta("gitleaks", { env, plataforma }),
     clis: CLIS.map((cli) => detectarCli(cli, { env, plataforma })),
     projeto: detectarProjeto(cwd),
   };

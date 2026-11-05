@@ -7,11 +7,14 @@ import { detectarCli, expandir, extrairVersao, stacksDe, verificarNode } from ".
 
 const WIN = process.platform === "win32";
 
-// Cria um executável falso que imprime a versão, no formato de cada plataforma.
-function cliFalsa(pasta, bin, saida) {
+// Cria um executável falso que imprime a versão e sai com o código dado, no formato de cada plataforma.
+function cliFalsa(pasta, bin, saida, codigo = 0) {
   fs.mkdirSync(pasta, { recursive: true });
   const caminho = path.join(pasta, WIN ? `${bin}.cmd` : bin);
-  fs.writeFileSync(caminho, WIN ? `@echo ${saida}\r\n` : `#!/bin/sh\necho "${saida}"\n`);
+  fs.writeFileSync(
+    caminho,
+    WIN ? `@echo ${saida}\r\n@exit /b ${codigo}\r\n` : `#!/bin/sh\necho "${saida}"\nexit ${codigo}\n`,
+  );
   if (!WIN) fs.chmodSync(caminho, 0o755);
   return caminho;
 }
@@ -68,6 +71,22 @@ test("CLI só na pasta conhecida: fora do PATH", (t) => {
   const r = detectarCli(CLI, { env: ambiente(raiz, false) });
   assert.equal(r.estado, "fora-do-path");
   assert.equal(r.versao, "4.5.6");
+});
+
+test("CLI que existe mas falha no --version: erro, não ok", (t) => {
+  const raiz = fs.mkdtempSync(path.join(os.tmpdir(), "vbd-"));
+  t.after(() => fs.rmSync(raiz, { recursive: true, force: true }));
+  cliFalsa(path.join(raiz, "path"), "cli-de-teste", "quebrada", 1);
+  const r = detectarCli(CLI, { env: ambiente(raiz, true) });
+  assert.equal(r.estado, "erro");
+});
+
+test("pasta do PATH entre aspas é lida", (t) => {
+  const raiz = fs.mkdtempSync(path.join(os.tmpdir(), "vbd-"));
+  t.after(() => fs.rmSync(raiz, { recursive: true, force: true }));
+  cliFalsa(path.join(raiz, "path"), "cli-de-teste", "cli-de-teste 7.8.9");
+  const env = { ...ambiente(raiz, true), PATH: `"${path.join(raiz, "path")}"` };
+  assert.equal(detectarCli(CLI, { env }).versao, "7.8.9");
 });
 
 test("CLI ausente: devolve o comando oficial de instalação", (t) => {

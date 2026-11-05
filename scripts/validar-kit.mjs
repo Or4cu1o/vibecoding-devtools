@@ -33,6 +33,8 @@ function frontmatter(texto) {
   return campos;
 }
 
+// Texto sem BOM e com LF, para funcionar também em checkout do Windows (CRLF).
+const ler = (p) => fs.readFileSync(p, "utf8").replace(/^﻿/, "").replace(/\r\n/g, "\n");
 const rel = (p) => path.relative(raiz, p).split(path.sep).join("/");
 const existe = (...p) => fs.existsSync(path.join(raiz, ...p));
 
@@ -40,29 +42,34 @@ const existe = (...p) => fs.existsSync(path.join(raiz, ...p));
 for (const nome of fs.readdirSync(path.join(raiz, "skills"))) {
   const arquivo = path.join(raiz, "skills", nome, "SKILL.md");
   if (!fs.existsSync(arquivo)) { erro(`skills/${nome}`, "falta SKILL.md"); continue; }
-  const fm = frontmatter(fs.readFileSync(arquivo, "utf8"));
+  const fm = frontmatter(ler(arquivo));
   if (!fm) { erro(rel(arquivo), "falta frontmatter"); continue; }
   if (fm.name !== nome) erro(rel(arquivo), `name "${fm.name ?? ""}" difere da pasta "${nome}"`);
-  if (!fm.description) erro(rel(arquivo), "description vazia ou em várias linhas");
+  if (!fm.description || /^[|>]/.test(fm.description)) erro(rel(arquivo), "description vazia ou em várias linhas");
   else if (fm.description.length > 1024) erro(rel(arquivo), "description com mais de 1024 caracteres");
   for (const k of Object.keys(fm)) if (k.startsWith("?")) erro(rel(arquivo), `linha de frontmatter inválida: ${k.slice(1)}`);
 }
 
 // Rules: no formato do Claude Code, o único campo de frontmatter é paths.
 for (const arquivo of listarMd(path.join(raiz, "rules"))) {
-  const fm = frontmatter(fs.readFileSync(arquivo, "utf8"));
+  const fm = frontmatter(ler(arquivo));
   for (const k of Object.keys(fm ?? {})) if (k !== "paths") erro(rel(arquivo), `campo de frontmatter não suportado: ${k}`);
 }
 
 // Referências e links em todo Markdown.
 for (const arquivo of listarMd(raiz)) {
-  const texto = fs.readFileSync(arquivo, "utf8").replace(/^(```|~~~)[\s\S]*?^\1/gm, "");
+  const texto = ler(arquivo).replace(/^(```|~~~)[\s\S]*?^\1/gm, "");
 
-  for (const [, tipo, nome] of texto.matchAll(/\b(regras?|skills?)\s+`([a-z0-9-]+)`/g)) {
-    const ok = tipo.startsWith("regra") ? existe("rules", `${nome}.md`) : existe("skills", nome) || EXTERNAS.has(nome);
+  // "regra `x`" e "skill `x`" (pt-BR) ou "the `x` skill" e "the `x` rule" (pacote Maestri, em inglês).
+  const citadas = [
+    ...[...texto.matchAll(/\b(regras?|skills?)\s+`([a-z0-9-]+)`/g)].map(([, tipo, nome]) => [tipo, nome]),
+    ...[...texto.matchAll(/`([a-z0-9-]+)`\s+(skill|rule)s?\b/g)].map(([, nome, tipo]) => [tipo, nome]),
+  ];
+  for (const [tipo, nome] of citadas) {
+    const ok = /^(regra|rule)/.test(tipo) ? existe("rules", `${nome}.md`) : existe("skills", nome) || EXTERNAS.has(nome);
     if (!ok) erro(rel(arquivo), `${tipo} \`${nome}\` não existe no kit`);
   }
-  for (const [, nome] of texto.matchAll(/superfície\s+`([a-z0-9-]+)`/g)) {
+  for (const [, nome] of texto.matchAll(/(?:superfície\s+`|superficies\/)([a-z0-9-]+)/g)) {
     if (!existe("skills", "revisao-de-seguranca", "superficies", `${nome}.md`)) erro(rel(arquivo), `superfície \`${nome}\` não existe`);
   }
   for (const [, alvo] of texto.replace(/`[^`\n]*`/g, "").matchAll(/\]\(([^)\s]+)\)/g)) {
@@ -72,7 +79,7 @@ for (const arquivo of listarMd(raiz)) {
   }
 }
 
-if (!/^## \[Unreleased\]$/m.test(fs.readFileSync(path.join(raiz, "CHANGELOG.md"), "utf8"))) {
+if (!/^## \[Unreleased\]$/m.test(ler(path.join(raiz, "CHANGELOG.md")))) {
   erro("CHANGELOG.md", "falta a seção ## [Unreleased]");
 }
 

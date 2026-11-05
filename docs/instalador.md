@@ -4,15 +4,15 @@ Especificação do instalador do vibecoding-devtools. Em implementação; a prim
 
 | Etapa | Estado |
 |---|---|
-| 1. Detecção de Node, git, CLIs, PATH e stack (`node instalador/cli.mjs detectar`) | pronta |
+| 1. Detecção de Node, git, gitleaks, CLIs, PATH e stack (`node instalador/cli.mjs detectar`) | pronta |
 | 2. Painel | a fazer |
 | 3. Instalação do kit, com as conversões | a fazer |
 | 4. ECC e Impeccable | a fazer |
 | 5. Estado e `uninstall` | a fazer |
 
-Um comando prepara o ambiente de desenvolvimento com IA de ponta a ponta: confere o que existe na máquina, abre um painel
-para escolher o que instalar e instala o kit, o ECC e o Impeccable nas CLIs escolhidas. O kit é distribuído só pelo
-instalador, nunca como plugin (veja `docs/compatibilidade-clis.md`, seção Plugins).
+Um comando prepara o ambiente de desenvolvimento com IA de ponta a ponta: confere o que existe na máquina, abre um
+painel para escolher o que instalar e instala o kit, o ECC e o Impeccable nas CLIs escolhidas. O kit é distribuído só
+pelo instalador, nunca como plugin (veja `docs/compatibilidade-clis.md`, seção Plugins).
 
 ## Decisões
 
@@ -21,11 +21,11 @@ instalador, nunca como plugin (veja `docs/compatibilidade-clis.md`, seção Plug
 - **Painel:** `@clack/prompts`. As dependências ficam fixadas em `npm-shrinkwrap.json`, que o `npx` respeita.
 - **CLIs suportadas:** Claude Code, Codex e Antigravity. O Claude Code é a fonte; as outras recebem conversões.
 - **Escopo:** global por padrão (vale em todo projeto); o usuário pode escolher por projeto no painel.
-- **Terceiros:** ECC e Impeccable vêm da fonte oficial, na versão fixada em `instalador/terceiros.json`. O kit não guarda
-  cópia do código deles.
-- **Rules do ECC:** quem copia é o nosso instalador, nas três CLIs, a partir do ECC na versão fixada. O instalador do ECC
-  instala o resto (agentes, comandos, skills e, se pedido, hooks), sem o módulo de rules.
-- **Telemetria do Impeccable:** desligada por padrão (`DO_NOT_TRACK=1` e `npx impeccable telemetry off`).
+- **Terceiros:** ECC e Impeccable vêm da fonte oficial, na versão fixada em `instalador/terceiros.json`. O kit não
+  guarda cópia do código deles.
+- **Rules do ECC:** quem copia é o nosso instalador, nas três CLIs, a partir do ECC na versão fixada. O instalador do
+  ECC instala o resto (agentes, comandos, skills e, se pedido, hooks), sem o módulo de rules.
+- **Telemetria do Impeccable:** desligada por padrão (`DO_NOT_TRACK=1` e `npx impeccable@4.8.0 telemetry off`).
 - **Maestri:** só por escolha no painel ou pela flag `--maestri`.
 - **Manutenção:** `uninstall` na 0.1.0; `update` depois. Os dois usam o estado gravado na instalação.
 
@@ -33,7 +33,7 @@ instalador, nunca como plugin (veja `docs/compatibilidade-clis.md`, seção Plug
 
 `npx github:Or4cu1o/vibecoding-devtools#v<versão>`: o npm baixa o repositório na tag e roda o instalador, sem publicar
 pacote. A tag fixa a versão, como a superfície `segredos-e-infra` da skill `revisao-de-seguranca` exige para downloads.
-Nada de `curl | bash`.
+Nada de `curl | bash`: o instalador só **exibe** o comando oficial de instalação de uma CLI ausente, nunca o executa.
 
 ```bash
 npx github:Or4cu1o/vibecoding-devtools#v0.1.0             # painel
@@ -42,9 +42,11 @@ npx github:Or4cu1o/vibecoding-devtools#v0.1.0 uninstall   # remove só o que o k
 
 ## Fluxo
 
-1. **Pré-requisitos:** Node ≥ 22 e git. Faltando, explica como instalar e para.
-2. **CLIs:** procura `claude`, `codex` e `agy`; mostra versão e pasta. Instalado mas fora do `PATH`: avisa e oferece o
-   comando para corrigir. Ausente: oferece o comando oficial de instalação (tabela em `docs/compatibilidade-clis.md`).
+1. **Pré-requisitos:** Node ≥ 22 e git; faltando, explica como instalar e para. gitleaks é recomendado (as rules pedem
+   a varredura antes do commit): faltando, avisa e segue.
+2. **CLIs:** procura `claude`, `codex` e `agy`; mostra versão e pasta. Instalado mas fora do `PATH`: avisa qual pasta
+   adicionar. Instalado mas sem responder a `--version`: aponta erro. Ausente: oferece o comando oficial de instalação
+   (tabela em `docs/compatibilidade-clis.md`).
 3. **Projeto:** quando roda dentro de um repositório, detecta a stack pelos arquivos (`package.json`, `tsconfig.json`,
    `pyproject.toml`, `go.mod`, `Cargo.toml`, `pom.xml`, `composer.json`, `Gemfile`...) para sugerir as rules do ECC.
 4. **Painel:**
@@ -53,7 +55,8 @@ npx github:Or4cu1o/vibecoding-devtools#v0.1.0 uninstall   # remove só o que o k
    - Kit: rules, skills e hooks, cada hook ligável à parte.
    - ECC: em quais CLIs; hooks do ECC (desligados por padrão); pacotes de rules da stack no projeto.
    - Impeccable: em quais CLIs.
-   - Maestri: instalar `maestri-protocolo`, `maestri-protocol` e `maestri-agent-cli`?
+   - Maestri: instalar as rules `maestri-protocolo` e `maestri-consumo` e as skills `maestri-protocol`,
+     `maestri-agent-cli` e `maestri-budget`?
 5. **Resumo:** lista cada arquivo e comando que vai rodar (dry-run) e pede confirmação.
 6. **Instalação:** terceiros primeiro, depois o kit. Para em qualquer erro, sem deixar instalação pela metade sem aviso.
 7. **Estado:** grava o que instalou e onde (`~/.vibecoding-devtools/estado.json`), para desinstalar e atualizar só o que
@@ -80,8 +83,11 @@ No escopo de projeto, as mesmas peças vão para `.claude/`, `.codex/`, `.agents
   `common` do ECC (cerca de 18 KiB) deixaria só 2 KiB para o `AGENTS.md` do projeto, por isso fica num arquivo à parte e
   o bloco do kit diz quando lê-la.
 - **Antigravity:** rules sempre ativas e globais dividem 20 mil tokens; kit e `common` somam cerca de 8 mil.
-- **Rules do ECC:** copie a pasta inteira de cada pacote, não arquivos soltos, para manter as referências `../common/`.
-  No Antigravity, rule com `paths:` vira `trigger: glob` com `globs:`.
+- **Rules com `paths:`** (do kit ou do ECC): no Antigravity viram `trigger: glob` com `globs:`; no Codex, linha da
+  tabela de roteamento no bloco do kit.
+- **Rules do ECC no Claude Code:** copie a pasta inteira de cada pacote, para manter as referências `../common/`.
+- **Rules no Antigravity:** só o primeiro nível de `rules/` é lido. Achate os pacotes (`ecc-<pacote>-<arquivo>.md`) e
+  reescreva as referências `../common/<x>.md` para o nome achatado; teste colisão de nomes e carregamento.
 
 ## ECC
 
@@ -91,19 +97,19 @@ No escopo de projeto, as mesmas peças vão para `.claude/`, `.codex/`, `.agents
   `hooks-runtime` só se o usuário ligar os hooks do ECC (o que equivale ao `core` sem rules).
 - Claude Code: `npx ecc-universal@2.2.3 install --target claude --modules <módulos>`, que registra o que instalou e
   permite desinstalar.
-- Codex: plugin nativo (`codex plugin marketplace add affaan-m/ECC` e `codex plugin add ecc@ecc`); os hooks pedem
+- Codex: plugin nativo (`codex plugin marketplace add affaan-m/ECC@v2.2.3` e `codex plugin add ecc@ecc`); os hooks pedem
   aprovação no `/hooks`.
 - Antigravity: `npx ecc-universal@2.2.3 install --target antigravity --modules <módulos>`. É adaptador experimental, sem
   hooks, e grava no `.agents/` do projeto.
 - **Nunca dois métodos para a mesma CLI** (plugin e `install`, por exemplo): os hooks duplicam.
-- Precedência: as rules do kit dizem quais regras do ECC substituem (por exemplo, `testes` substitui a meta de 80% e o TDD
-  obrigatório). As rules do projeto vencem as duas.
+- Precedência: as rules do kit dizem quais regras do ECC substituem (por exemplo, `testes` substitui a meta de 80% e o
+  TDD obrigatório). As rules do projeto vencem as duas.
 
 ## Impeccable
 
-- Versão fixada: `impeccable` (tag `cli-v4.8.0` em `github.com/pbakaus/impeccable`).
-- `npx impeccable install --providers=<claude,codex,antigravity> --scope=<project|global> -y`. Sem TTY, passe sempre `-y`
-  e `--providers`, senão o comando espera resposta.
+- Versão fixada: `impeccable@4.8.0` no npm (tag `cli-v4.8.0` em `github.com/pbakaus/impeccable`), em todos os comandos.
+- `npx impeccable@4.8.0 install --providers=<claude,codex,antigravity> --scope=<project|global> -y`. Sem TTY, passe
+  sempre `-y` e `--providers`, senão o comando espera resposta.
 - Precisa rodar na raiz de um projeto com git. Não tem desinstalação: o estado do instalador registra o que ele criou.
 - No Antigravity entra só a skill, sem hook. Grava em `.agent/`, enquanto o ECC usa `.agents/`: confira se a skill não
   carrega duas vezes.

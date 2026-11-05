@@ -13,20 +13,31 @@ if (comando !== "detectar") {
 }
 
 const r = detectarTudo();
+const prontos = r.node.ok && r.git.ok;
 
 if (args.includes("--json")) {
   console.log(JSON.stringify(r, null, 2));
-  process.exit(r.node.ok && r.git.ok ? 0 : 1);
+  process.exit(prontos ? 0 : 1);
 }
 
+const ferramenta = (nome, f, comoInstalar) =>
+  f.ok ? `${nome} ${f.versao ?? "?"} ok` : `${nome}: ${f.erro}. Para instalar: ${comoInstalar}`;
+
 const linhas = [];
-linhas.push(`Node ${r.node.versao} ${r.node.ok ? "ok" : `(precisa de ${r.node.minimo} ou maior)`}`);
-linhas.push(r.git.ok ? `git ${r.git.versao ?? "?"} ok` : "git ausente");
+linhas.push(
+  r.node.ok
+    ? `Node ${r.node.versao} ok`
+    : `Node ${r.node.versao}: precisa de ${r.node.minimo} ou maior. Para instalar: https://nodejs.org`,
+);
+linhas.push(ferramenta("git", r.git, "https://git-scm.com/downloads"));
+linhas.push(ferramenta("gitleaks", r.gitleaks, "https://github.com/gitleaks/gitleaks#installing"));
 linhas.push("");
 for (const c of r.clis) {
   if (c.estado === "ausente") linhas.push(`${c.nome}: não instalado. Para instalar: ${c.instalar}`);
-  else if (c.estado === "fora-do-path") linhas.push(`${c.nome} ${c.versao ?? "?"}: instalado em ${c.pasta}, fora do PATH`);
-  else linhas.push(`${c.nome} ${c.versao ?? "?"}: ${c.caminho}`);
+  else if (c.estado === "erro") linhas.push(`${c.nome}: encontrado em ${c.caminho}, mas não respondeu: ${c.erro}`);
+  else if (c.estado === "fora-do-path") {
+    linhas.push(`${c.nome} ${c.versao ?? "?"}: instalado em ${c.pasta}, fora do PATH. Adicione essa pasta ao PATH.`);
+  } else linhas.push(`${c.nome} ${c.versao ?? "?"}: ${c.caminho}`);
 }
 linhas.push("");
 if (r.projeto.emRepositorio) {
@@ -34,7 +45,7 @@ if (r.projeto.emRepositorio) {
   linhas.push(`Projeto: ${r.projeto.raiz}`);
   linhas.push(`Stacks: ${stacks}`);
 } else {
-  linhas.push("Fora de um repositório git: só o escopo global estará disponível.");
+  linhas.push(`Projeto: ${r.projeto.motivo}. Só o escopo global estará disponível.`);
 }
 console.log(linhas.join("\n"));
-process.exit(r.node.ok && r.git.ok ? 0 : 1);
+process.exit(prontos ? 0 : 1);

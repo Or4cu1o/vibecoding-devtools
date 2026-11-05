@@ -3,7 +3,9 @@
   "config": {
     "default": true,
     // 120 colunas no texto; tabelas, blocos de código e títulos ficam livres.
-    "MD013": { "line_length": 120, "tables": false, "code_blocks": false, "headings": false },
+    "MD013": { "line_length": 120, "tables": false, "code_blocks": false, "headings": false, "stern": true },
+    // Blocos de código sempre cercados (```), com a linguagem.
+    "MD046": { "style": "fenced" },
     // O CHANGELOG repete "Adicionado" e "Alterado" em cada versão.
     "MD024": { "siblings_only": true },
     // Os modelos usam <marcadores> para o usuário preencher.
