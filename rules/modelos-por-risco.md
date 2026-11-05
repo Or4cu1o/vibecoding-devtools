@@ -1,14 +1,14 @@
 # Modelos por função e risco
 
-**Problema que resolve:** usar o modelo mais caro para tudo, ou o mais barato onde há dinheiro. **Custo que evita:** tokens
-de modelo profundo em tarefa mecânica. **Revisão desta regra:** a cada troca de geração de modelos.
+**Problema que resolve:** usar o modelo mais caro para tudo, ou o mais barato onde há dinheiro. **Custo que evita:**
+tokens de modelo profundo em tarefa mecânica. **Revisão desta regra:** a cada troca de geração de modelos.
 
-Os nomes dos modelos mudam; a regra fala em faixas. O mapa concreto (qual modelo é cada faixa hoje) fica no projeto ou na
-configuração do orquestrador.
+Os nomes dos modelos mudam; a regra fala em faixas. O mapa concreto (qual modelo é cada faixa hoje) fica no projeto ou
+na configuração do orquestrador.
 
 | Faixa | Para quê | Exemplos |
 |---|---|---|
-| **Rápida** | trabalho mecânico e de alto volume, nível Baixo | docs, CHANGELOG, formatação, renomeações, triagem rápida antes de decidir quem executa |
+| **Rápida** | trabalho mecânico e de alto volume, nível Baixo | docs, CHANGELOG, formatação, renomeações, triagem rápida antes de decidir quem executa (só mantém ou sobe o nível) |
 | **Padrão** | implementação e revisão do dia a dia, nível Médio | backend, frontend, correção de bug, revisão de código e de segurança |
 | **Profunda** | planejamento e decisões caras de errar, nível Alto | arquitetura, contratos entre apps, esquema de dados de dinheiro, diagnóstico de falha que resistiu |
 

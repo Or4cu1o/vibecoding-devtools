@@ -3,8 +3,8 @@
 Como Claude Code, Codex e Antigravity carregam instruções, rules, skills, hooks e agentes. O Claude Code é a fonte; o
 instalador converte para os outros dois a partir desta tabela.
 
-Verificado em 2026-10-29 com Claude Code 2.1.302, Codex 0.164.0 e Antigravity CLI 1.4.9. **Revisão deste arquivo:** a cada
-versão nova de uma das CLIs que mude carregamento, hooks ou plugins.
+Verificado em 2026-10-29 com Claude Code 2.1.302, Codex 0.164.0 e Antigravity CLI 1.4.9. **Revisão deste arquivo:** a
+cada versão nova de uma das CLIs que mude carregamento, hooks ou plugins.
 
 ## Binário e instalação
 
@@ -47,8 +47,8 @@ não link simbólico).
 
 - **Conversão para o Antigravity:** rule sem `paths:` ganha `trigger: always_on`; com `paths:`, vira `trigger: glob` e
   `globs:`.
-- **Conversão para o Codex:** não há pasta de rules. As regras sempre válidas entram num bloco marcado do `AGENTS.md`; as
-  grandes entram como linha da tabela de roteamento ("se a tarefa envolve X, leia Y"), dentro do limite de 32 KiB.
+- **Conversão para o Codex:** não há pasta de rules. As regras sempre válidas entram num bloco marcado do `AGENTS.md`;
+  as grandes entram como linha da tabela de roteamento ("se a tarefa envolve X, leia Y"), dentro do limite de 32 KiB.
 - No Codex, "rules" (`~/.codex/rules/*.rules`, Starlark) são políticas de comando: `prefix_rule(...)` com
   `decision="forbidden"` bloqueia um comando de vez. Úteis para proibições duras, como `git push --force`.
 
@@ -61,8 +61,8 @@ não link simbólico).
 | Frontmatter portável | `name`, `description` | `name`, `description` | `name`, `description` |
 | `references/`, `scripts/` | sim | sim | sim |
 
-O mesmo `SKILL.md` funciona nas três. Campos além de `name` e `description` (como `user-invocable`) só valem no Claude Code
-e são ignorados pelas outras. No projeto, Codex e Antigravity leem a mesma `.agents/skills/`.
+O mesmo `SKILL.md` funciona nas três. Campos além de `name` e `description` (como `user-invocable`) só valem no Claude
+Code e são ignorados pelas outras. No projeto, Codex e Antigravity leem a mesma `.agents/skills/`.
 
 ## Hooks
 
@@ -79,8 +79,8 @@ e são ignorados pelas outras. No projeto, Codex e Antigravity leem a mesma `.ag
 | Timeout padrão | 600 s | 600 s | 30 s |
 | Aprovação do usuário | não | **sim, no `/hooks`; toda mudança exige nova aprovação** | não |
 
-- Os três bloqueiam um comando de shell antes de ele rodar. Um script só, em Node, atende os três se reconhecer o formato
-  da entrada e responder no formato de cada um.
+- Os três bloqueiam um comando de shell antes de ele rodar. Um script só, em Node, atende os três se reconhecer o
+  formato da entrada e responder no formato de cada um.
 - No Codex, um hook que trava, estoura o tempo ou devolve saída inválida **não bloqueia**; `ask` não é suportado.
 - O Antigravity não tem `UserPromptSubmit`, `SessionEnd` nem `PreCompact`.
 
@@ -98,12 +98,14 @@ e são ignorados pelas outras. No projeto, Codex e Antigravity leem a mesma `.ag
 | Carrega rules | não | não | sim |
 | Instalar | `claude plugin install <p>@<mkt>` | `codex plugin add <p>@<mkt>` | `agy plugin install <alvo>` |
 
-O kit não é distribuído como plugin: rules não cabem em plugin no Claude Code nem no Codex. A instalação é pelo instalador.
+O kit não é distribuído como plugin: rules não cabem em plugin no Claude Code nem no Codex. A instalação é pelo
+instalador.
 
 ## Pontos não confirmados
 
 - Shell usado pelo Codex para o `command` de hooks no Windows.
-- Nomes das ferramentas de edição no Antigravity (só `run_command` é documentado) e o efeito do exit code nos hooks dele.
+- Nomes das ferramentas de edição no Antigravity (só `run_command` é documentado) e o efeito do exit code nos hooks
+  dele.
 - Pasta global do Antigravity CLI: os docs locais e esta máquina usam `~/.gemini/config/`; o site cita
   `~/.gemini/antigravity-cli/`.
 

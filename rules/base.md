@@ -2,8 +2,10 @@
 
 Valem em todo projeto e em todo nível de risco. Em conflito com regras de processo, estas vencem.
 
-- **Segredos:** nunca escrever, imprimir ou versionar segredos, tokens ou `.env`; use `.env.example`. Varredura de
-  segredos (`gitleaks git`) antes de todo commit.
+- **Segredos:** nunca escrever, imprimir ou versionar segredos, tokens ou `.env`; use `.env.example`. Antes de todo
+  commit, varra o que vai entrar: `gitleaks git --pre-commit --staged --redact` (sem git: `gitleaks dir <arquivos>`).
+- **Plataformas que mudam:** consulte a documentação oficial (clonada ou referenciada no projeto) antes de assumir
+  comportamento de memória.
 - **Git:** branch `tipo/nome-curto` a partir da main, Conventional Commits, merge commit. Nunca push direto na main,
   nunca force-push, nunca reescrever histórico compartilhado. Push, PR e merge só com o OK do dono.
 - **Ações destrutivas ou externas** (apagar dados ou repositórios, deploy, publicar pacote, tag de release, mudar

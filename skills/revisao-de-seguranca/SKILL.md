@@ -23,10 +23,11 @@ esta skill só entra no nível Alto (regra `processo-por-risco`) e só com as su
 3. **Contrato:** copie os itens que se aplicam como critérios de pronto. **Modelo de ameaça:** só dessas superfícies.
 4. **Revisão:** para cada item aplicável, Pass ou achado com gravidade (Crítico, Maior, Menor ou Sugestão),
    `arquivo:linha`, cenário de abuso e correção.
-5. **Triagem:** siga **Achados** na regra `processo-por-risco`. Como esta skill só entra no nível Alto, Menor também bloqueia.
+5. **Triagem:** decida pela seção **Achados** da regra `processo-por-risco`.
 6. Falha ainda não corrigida nunca é descrita em issue, PR, commit ou documento público.
 
 ## Ferramentas
 
-Varredura de segredos (`gitleaks git` e `gitleaks dir`), auditoria de dependências do gerenciador do projeto
-(`pnpm audit`, `npm audit`, `uvx pip-audit`, `govulncheck`), e os testes de risco listados em cada superfície.
+Varredura de segredos (`gitleaks git --pre-commit --staged`, `gitleaks git` no histórico e `gitleaks dir`), auditoria de
+dependências do gerenciador do projeto (`pnpm audit`, `npm audit`, `uvx pip-audit`, `govulncheck`), e os testes de risco
+listados em cada superfície.

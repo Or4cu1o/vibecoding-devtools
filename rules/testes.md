@@ -1,7 +1,7 @@
 # Testes
 
-**Problema que resolve:** suítes enormes que travam estrutura em vez de proteger comportamento (milhares de testes e várias
-linhas de teste por linha de produção numa única release). **Custo que evita:** minutos de CI por PR e tokens
+**Problema que resolve:** suítes enormes que travam estrutura em vez de proteger comportamento (milhares de testes e
+várias linhas de teste por linha de produção numa única release). **Custo que evita:** minutos de CI por PR e tokens
 gastos escrevendo, mantendo e relendo testes de pouco valor. **Revisão desta regra:** a cada seis meses.
 
 Teste protege comportamento, não trava estrutura. Esta regra substitui metas genéricas de cobertura e TDD obrigatório
@@ -29,14 +29,15 @@ Teste protege comportamento, não trava estrutura. Esta regra substitui metas ge
 
 ## TDD
 
-RED antes só para correção de bug e para regra pura. No resto, teste depois, e só se o item cair em "O que merece teste".
+RED antes só para correção de bug e para regra pura. No resto, teste depois, e só se o item cair em "O que merece
+teste".
 
 ## Cobertura
 
 - Piso global no repositório, que nunca cai.
 - Piso maior (por exemplo, 90%) só nas áreas críticas que o projeto lista (dinheiro, autenticação, dados, regras puras),
   cobrado por um passo do CI: um PR que derruba a cobertura dessas áreas reprova.
-- Nível Alto com dinheiro, dados pessoais ou autenticação: ≥ 80% no código alterado.
+- Nível Alto com dinheiro, dados pessoais ou autenticação: cobertura conforme a regra `processo-por-risco`.
 - Sem meta global só para subir o número.
 
 ## Marcadores
@@ -48,7 +49,7 @@ primeiro e falha cedo.
 
 - O CI roda lint, typecheck e a suíte completa. Localmente, rode só os testes do que você mexeu.
 - Vários agentes não rodam a mesma suíte no mesmo commit: o CI é a fonte da verdade.
-- Pronto = CI verde.
+- Pronto conforme a regra `processo-por-risco`: CI verde ou, sem CI, a verificação local equivalente.
 
 ## Sinal de alerta
 

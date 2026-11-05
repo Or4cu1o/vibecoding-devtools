@@ -14,13 +14,14 @@ Siga a regra `processo-por-risco` e a regra `testes`.
 2. Leia o mapa de risco do projeto no `AGENTS.md`, se existir. Ele vence a lista genérica abaixo.
 3. Marque o nível de cada arquivo:
    - **Alto:** dinheiro e valores (pagamentos, saldos, vendas), dados pessoais, autenticação, sessão, permissões,
-     comandos administrativos, segredos, entrada externa que o sistema publica ou executa, migração ou exclusão de dados,
-     deploy, CI, dependências.
+     comandos administrativos, segredos, entrada externa que o sistema publica ou executa, migração ou exclusão de
+     dados, deploy, CI, dependências.
    - **Médio:** lógica de negócio, correção de bug, mudança de comportamento.
-   - **Baixo:** assets, textos, estilo, docs, configuração, versão, logs.
+   - **Baixo:** assets, textos, estilo, docs, versão, logs; valores de configuração que não tocam autenticação,
+     permissões, CORS, limites, segredos ou dinheiro.
 4. O nível da tarefa é o maior entre os arquivos.
-5. Se houver mais de uma área (front, back, infra), divida: um construtor por área, em paralelo, um dono por arquivo.
-   No nível Alto, chame a skill `revisao-de-seguranca` só com as superfícies tocadas.
+5. Áreas independentes (front, back, infra) numa mudança que não é pequena: divida conforme **Paralelo por área** na
+   regra `processo-por-risco`. No nível Alto, chame a skill `revisao-de-seguranca` só com as superfícies tocadas.
 6. Responda neste formato, em no máximo 8 linhas:
 
 ```text
@@ -28,15 +29,16 @@ Nível: <Baixo|Médio|Alto>: <motivo em uma frase, citando o arquivo que decidiu
 Áreas: <front/back/infra e quem faz cada uma>
 Contrato: <nenhum | o próprio pedido | uma página>
 Testes: <nenhum | 1 de regressão | caminhos de risco: ...>
-Revisões: <CI + revisão automática | + leitura do diff | + arquitetura, testes e segurança em paralelo>
+Revisões: <CI ou verificação local | + leitura do diff | + arquitetura, testes e segurança>
 Pronto quando: <critério>
 ```
 
 ## Exemplos
 
-- Trocar o ícone de um provedor: **Baixo**. Sem testes e sem revisores; CI verde.
+- Trocar o ícone de um provedor: **Baixo**. Sem testes e sem revisores.
 - Corrigir um comando que trava ao pular de faixa: **Médio**. Um teste de regressão e leitura do diff.
-- Correção que mexe no endpoint do painel e no componente da tela: **Médio**, em duas áreas: back e front em paralelo.
+- Correção grande que mexe no endpoint do painel e no componente da tela: **Médio**; back e front são independentes,
+  então vão em paralelo. Se a correção for de poucas linhas, um construtor faz as duas.
 - Novo checkout com cartão: **Alto**, com baseline completo.
-- Publicar num canal um texto vindo de fora (nome de música, nome de usuário): **Alto só nesse ponto**. Confira o escape
-  de menções e de links; o resto da mudança segue o próprio nível.
+- Publicar num canal um texto vindo de fora (nome de música, nome de usuário): **Alto**. A revisão de segurança se
+  limita a esse ponto: escape de menções e de links.

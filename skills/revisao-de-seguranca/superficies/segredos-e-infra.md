@@ -2,13 +2,14 @@
 
 ## Segredos
 
-- Nunca em código, log, mensagem, anexo, relatório de erro, mensagem de exceção ou resposta ao cliente. Para diagnóstico,
-  registre só se o valor está presente ou ausente.
+- Nunca em código, log, mensagem, anexo, relatório de erro, mensagem de exceção ou resposta ao cliente. Para
+  diagnóstico, registre só se o valor está presente ou ausente.
 - URL de conexão em log tem a credencial mascarada (`postgres://***@host`).
-- Toda variável sensível nova entra vazia e documentada no `.env.example`, e é lida num único carregador de configuração.
+- Toda variável sensível nova entra vazia e documentada no `.env.example`, e é lida num único carregador de
+  configuração.
 - Exportação de configuração troca segredos por placeholders.
-- Exceção pública (por exemplo, um client ID que vai em toda URL de autorização) só por nome explícito e validação de formato;
-  qualquer valor fora do formato continua sendo segredo.
+- Exceção pública (por exemplo, um client ID que vai em toda URL de autorização) só por nome explícito e validação de
+  formato; qualquer valor fora do formato continua sendo segredo.
 - `.env`, bancos locais e caches fora do git e fora da imagem Docker (`.gitignore` e `.dockerignore`).
 
 ## Comandos de admin e subprocessos

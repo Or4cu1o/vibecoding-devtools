@@ -1,3 +1,13 @@
+---
+paths:
+  - "**/AGENTS.md"
+  - "**/CLAUDE.md"
+  - "**/GEMINI.md"
+  - "**/SKILL.md"
+  - ".claude/rules/**"
+  - ".agents/rules/**"
+---
+
 # Contexto sob demanda
 
 **Problema que resolve:** regras grandes carregadas em toda conversa, mesmo quando a tarefa não toca o tema. **Custo que
@@ -13,5 +23,5 @@ evita:** tokens de contexto em cada mensagem de cada agente.
 - **Uma fonte só** para Claude Code e para os outros agentes (Antigravity, Codex). Duas cópias à mão (`.claude/rules` e
   `.agents/rules`) divergem com o tempo; gere uma a partir da outra.
 - Documentação oficial de plataformas que mudam (Discord, provedores de pagamento) fica clonada ou referenciada no
-  repositório e é consultada antes de assumir comportamento de memória.
+  repositório, com uma linha na tabela dizendo quando consultá-la.
 - Mapa de risco do projeto na mesma tabela: quais pastas são nível Alto (dinheiro, contas, dados, segredos, deploy).

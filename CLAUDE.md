@@ -30,5 +30,5 @@ O mesmo que o CI roda, antes de todo commit:
 npx markdownlint-cli2@0.24.0 "**/*.md"
 node scripts/validar-kit.mjs
 npm test
-gitleaks git --no-banner
+gitleaks git --pre-commit --staged --redact --no-banner
 ```

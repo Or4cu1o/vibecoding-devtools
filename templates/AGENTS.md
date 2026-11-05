@@ -1,10 +1,11 @@
 <!--
-Modelo de AGENTS.md do vibecoding-devtools. Copie para a raiz do projeto, preencha os <...> e apague o que não se aplica,
-inclusive este comentário. Claude Code, Codex e Antigravity leem este arquivo; o CLAUDE.md do projeto tem só `@AGENTS.md`.
+Modelo de AGENTS.md do vibecoding-devtools. Copie para a raiz do projeto, preencha os <...> e apague o que não se
+aplica, inclusive este comentário. Claude Code, Codex e Antigravity leem este arquivo; o CLAUDE.md do projeto tem só
+`@AGENTS.md`.
 
 Limites: o Codex lê no máximo 32 KiB somando todos os AGENTS.md, e o Claude Code recomenda menos de 200 linhas. Este
-arquivo é uma tabela de roteamento: o que vale sempre fica aqui, em poucas linhas; o resto fica em arquivo próprio e entra
-na tabela "Antes de começar".
+arquivo é uma tabela de roteamento: o que vale sempre fica aqui, em poucas linhas; o resto fica em arquivo próprio e
+entra na tabela "Antes de começar".
 -->
 
 # <Nome do projeto>
@@ -51,8 +52,6 @@ Vence a lista genérica da regra `processo-por-risco`. O arquivo mais arriscado 
 |---|---|
 | Qualquer tarefa de código | skill `triagem-de-risco` |
 | Nível Alto | skill `revisao-de-seguranca`, só as superfícies tocadas |
-| Testes | regra `testes` |
-| Escolher modelo ou delegar | regra `modelos-por-risco` |
 | <Integração com o serviço X> | `<docs/vendor/x/README.md>` |
 | <Interface visual> | <skill de design do projeto> |
 
