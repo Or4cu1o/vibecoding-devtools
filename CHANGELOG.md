@@ -5,6 +5,16 @@ Changelog](https://keepachangelog.com/pt-BR/1.1.0/); versões em [SemVer](https:
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-04
+
+### Adicionado
+
+- Instalador completo: painel com `@clack/prompts` e flags; plano de ações com situação nova, igual, atualizar ou
+  conflito; conversões para Codex (bloco no `AGENTS.md` com orçamento de 32 KiB) e Antigravity (`trigger:` e pacotes
+  do ECC achatados com links reescritos); ECC e Impeccable em versões fixadas; estado com trava, escrita atômica e
+  desinstalação pelo hash. Testado de ponta a ponta em Linux e Windows.
+- `maestri-agent-cli`: onde cada CLI lista os identificadores exatos de modelo e como passá-los no lançamento.
+
 ## [0.0.2] - 2026-11-04
 
 ### Adicionado
