@@ -5,6 +5,21 @@ Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-06
+
+### Added
+
+- npm distribution as `vibecoding-devtools@1.0.1`, with tag-checked GitHub Actions trusted publishing (OIDC),
+  provenance and owner setup instructions; pinned GitHub installation remains available as a fallback.
+
+### Fixed
+
+- Recognize Codex 0.167 remote marketplace tables and preserve installed vendor plugins, including Claude user
+  scope, without duplicate manual installs. Report plugin versions and outdated pins through their existing
+  channel while retaining ECC rules-only copies.
+- Resolve entry-point symlinks so the installer runs through `npx` on Linux and macOS and symlinked hooks enforce
+  their checks instead of silently exiting.
+
 ## [1.0.0] - 2026-11-06
 
 ### Added

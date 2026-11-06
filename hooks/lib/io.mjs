@@ -1,4 +1,5 @@
 import { resolve, isAbsolute, win32 } from 'node:path';
+import { realpathSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
 export function parseInput(text) {
@@ -61,7 +62,10 @@ export async function runHook(check, {
 }
 
 export function isMain(url) {
-  return Boolean(process.argv[1]) && pathToFileURL(resolve(process.argv[1])).href === url;
+  if (!process.argv[1]) return false;
+  let entryPath = resolve(process.argv[1]);
+  try { entryPath = realpathSync(entryPath); } catch { /* Keep the resolved path if it cannot be read. */ }
+  return pathToFileURL(entryPath).href === url;
 }
 
 export function executable(token) {

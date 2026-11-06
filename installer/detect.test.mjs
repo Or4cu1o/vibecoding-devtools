@@ -6,7 +6,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { thirdPartyActions } from "./third-party.mjs";
 import * as thirdPartyApi from "./third-party.mjs";
-import { main } from "./cli.mjs";
+import { main, summarizePlan } from "./cli.mjs";
 import { detectCli, detectInstalled, detectAll, expand, extractVersion, detectStacks, checkNode,
   findIn, checkTool, parsePlugins } from "./detect.mjs";
 
@@ -197,7 +197,7 @@ test("Codex tables over 2 MB preserve ECC and Impeccable for third-party plannin
   const actions = thirdPartyActions({ scope: "global", ecc: { clis: ["codex"] },
     impeccable: { clis: ["codex"] } }, { installed }, { home });
   assert.ok(actions.filter((a) => a.owner === "ecc").every((a) => a.situation === "same"));
-  assert.equal(actions.find((a) => a.owner === "impeccable" && a.args.includes("install")).situation, "same");
+  assert.equal(actions.find((a) => a.owner === "impeccable").type, "summary");
 });
 
 test("Codex reads real STATUS values and distinguishes installed plugins from catalog entries", (t) => {
@@ -236,6 +236,33 @@ test("Codex reads real tables preceded by marketplace headers and paths", () => 
     ["ecc@ecc", "installed, enabled", "2.2.3", true],
     ["other@other", "not installed", "1.0.0", false],
   ]);
+});
+
+test("Codex 0.167 local and remote marketplace fixture distinguishes installs from catalog entries", (t) => {
+  const stdout = fs.readFileSync(new URL('./fixtures/codex-0.167-plugin-list.txt', import.meta.url), 'utf8');
+  const home = installedHome(t);
+  fs.mkdirSync(path.join(home, '.codex'));
+  const installed = detectInstalled({ home,
+    clis: [{ id: 'codex', filePath: process.execPath, state: 'ok' }],
+    executePlugins: () => ({ status: 0, stdout }) });
+  assert.equal(installed.plugins.codex.state, 'known');
+  assert.deepEqual(installed.plugins.codex.items.map(({ name, installed, version }) => [name, installed, version]), [
+    ['visualize@openai-bundled', true, '1.0.84'],
+    ['gmail@openai-curated-remote', false, '0.1.10'],
+    ['github@openai-curated-remote', true, '0.1.13'],
+    ['ecc@ecc', true, '2.2.3'],
+    ['impeccable@impeccable', false, '4.8.0'],
+  ]);
+  const actions = thirdPartyActions({ scope: 'global', ecc: { clis: ['codex'] },
+    impeccable: { clis: ['codex'] } }, { installed }, { home });
+  assert.ok(actions.every((a) => a.situation !== 'conflict'));
+  assert.equal(actions.find((a) => a.owner === 'ecc').type, 'summary');
+  assert.equal(actions.find((a) => a.args?.includes('install')).situation, 'new');
+  const summary = summarizePlan(actions, { home });
+  assert.equal(summary.actions.filter((a) => a.type === 'summary').length, 1);
+  assert.ok(summary.actions.every((a) => a.situation !== 'conflict'));
+  assert.throws(() => parsePlugins('codex', 'Remote catalog'), /Unrecognized/);
+  assert.throws(() => parsePlugins('codex', 'Marketplace `ecc`\nRemote catalog'), /Unrecognized/);
 });
 
 test("Real empty Codex and Claude lists are known; isolated warnings remain unknown", (t) => {

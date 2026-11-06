@@ -731,6 +731,30 @@ test('Real noninteractive binary returns help and JSON errors without hanging', 
   assert.equal(error.stderr, '');
 });
 
+test('T-63: symlinked CLI prints help and preserves usage errors', (t) => {
+  const { root } = environment(t);
+  const cli = fileURLToPath(new URL('./cli.mjs', import.meta.url));
+  const link = path.join(root, 'vibecoding-devtools.mjs');
+  try {
+    fs.symlinkSync(path.relative(root, cli), link, 'file');
+  } catch (error) {
+    if (process.platform === 'win32' && ['EPERM', 'EACCES'].includes(error.code)) {
+      t.skip('File symlink creation is not permitted on this Windows host');
+      return;
+    }
+    throw error;
+  }
+  const help = spawnSync(process.execPath, [link, '--help'], { encoding: 'utf8', timeout: 10000 });
+  assert.ifError(help.error);
+  assert.equal(help.status, 0, help.stderr);
+  assert.match(help.stdout, /Usage: vibecoding-devtools/);
+  const error = spawnSync(process.execPath, [link, 'invalid', '--json'], { encoding: 'utf8', timeout: 10000 });
+  assert.ifError(error.error);
+  assert.equal(error.status, 2, error.stderr);
+  assert.equal(JSON.parse(error.stdout).ok, false);
+  assert.equal(error.stderr, '');
+});
+
 test('Package and shrinkwrap pin clack 1.8.1 with dependency integrity', () => {
   const packageName = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
   const lock = JSON.parse(fs.readFileSync(new URL('../npm-shrinkwrap.json', import.meta.url), 'utf8'));

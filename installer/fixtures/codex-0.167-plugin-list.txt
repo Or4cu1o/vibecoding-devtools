@@ -1,0 +1,19 @@
+Marketplace `openai-bundled`
+/root/.codex/.tmp/bundled-marketplaces/openai-bundled/.agents/plugins/marketplace.json
+
+PLUGIN                    STATUS              VERSION  SOURCE
+visualize@openai-bundled  installed, enabled  1.0.84   /root/.codex/.tmp/bundled-marketplaces/openai-bundled/plugins/visualize
+
+Marketplace `openai-curated-remote`
+Remote catalog
+
+PLUGIN                            STATUS              VERSION            SOURCE
+gmail@openai-curated-remote        not installed       0.1.10             plugin_connector_1p_example
+github@openai-curated-remote       installed, enabled  0.1.13-77c10e110b37 plugin_connector_1p_other
+
+Marketplace `ecc`
+/root/.codex/.tmp/marketplaces/ecc/.agents/plugins/marketplace.json
+
+PLUGIN                    STATUS               VERSION  SOURCE
+ecc@ecc                   installed, disabled  2.2.3    /root/.codex/.tmp/marketplaces/ecc
+impeccable@impeccable     not installed        4.8.0    /root/plugins/impeccable

@@ -35,15 +35,16 @@ is distributed only through the installer, never as a plugin (see `docs/cli-comp
 
 ## Entry point
 
-`npx github:Or4cu1o/vibecoding-devtools#v<version>`: npm downloads the repository at the tag and runs the installer,
-without publishing a package. The tag pins the version, as the `secrets-and-infra` surface of the `security-surfaces`
-skill requires for downloads. No `curl | bash`: the installer only **displays** the official installation command for
-an absent CLI, never executes it.
+`npx vibecoding-devtools@1.0.1` downloads the pinned npm release and runs the installer. As an alternative,
+`npx github:Or4cu1o/vibecoding-devtools#v1.0.1` downloads the repository at the pinned tag and runs the same installer.
+Both forms accept the same commands and flags. See [releasing](releasing.md) for trusted publishing and provenance.
+No `curl | bash`: the installer only **displays** the official installation command for an absent CLI, never executes
+it.
 
 ```bash
-npx github:Or4cu1o/vibecoding-devtools#v0.1.0             # panel
-npx github:Or4cu1o/vibecoding-devtools#v0.1.0 uninstall   # removes only what the kit installed
-npx github:Or4cu1o/vibecoding-devtools#v1.0.0 update      # updates using saved choices
+npx vibecoding-devtools@1.0.1 install     # panel
+npx vibecoding-devtools@1.0.1 uninstall   # removes only what the kit installed
+npx vibecoding-devtools@1.0.1 update      # updates using saved choices
 ```
 
 ## Flow
@@ -148,9 +149,9 @@ edited items are retained with a warning and remain recorded for review or unins
 this removal safeguard. Third-party items are never removed by update. Unrelated content and empty folders remain.
 
 ```bash
-npx github:Or4cu1o/vibecoding-devtools#v1.0.0 update --dry-run --json
-npx github:Or4cu1o/vibecoding-devtools#v1.0.0 update --yes
-npx github:Or4cu1o/vibecoding-devtools#v1.0.0 update --clis codex --no-maestri --yes
+npx vibecoding-devtools@1.0.1 update --dry-run --json
+npx vibecoding-devtools@1.0.1 update --yes
+npx vibecoding-devtools@1.0.1 update --clis codex --no-maestri --yes
 ```
 
 `update` supports `--dry-run`, `--json`, `--yes` and `--force` with the same safeguards and exit codes as install.

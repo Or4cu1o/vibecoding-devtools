@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    name: Release checks (${{ matrix.os }})
+    if: github.repository == 'Or4cu1o/vibecoding-devtools'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - uses: DavidAnson/markdownlint-cli2-action@696eb3f2509270d7b882d2aa68347bc676e7af34 # v25.0.0
+        if: runner.os == 'Linux'
+        with:
+          globs: '**/*.md'
+      - run: node scripts/validate-kit.mjs
+      - run: npm ci --ignore-scripts
+      - run: npm test
+      - run: node installer/cli.mjs detect
+
+  publish:
+    needs: checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      # Trusted publishing requires npm >=11.5.1 and Node >=22.14.0.
+      - name: Install a pinned OIDC-capable npm
+        run: npm install --global npm@11.17.0 --ignore-scripts --registry=https://registry.npmjs.org
+      - name: Verify release identity
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const lock = JSON.parse(fs.readFileSync('npm-shrinkwrap.json', 'utf8'));
+          assert.equal(process.env.RELEASE_TAG, `v${pkg.version}`, 'Tag must match package version');
+          assert.equal(pkg.name, 'vibecoding-devtools');
+          assert.equal(pkg.repository.url, 'https://github.com/Or4cu1o/vibecoding-devtools');
+          assert.equal(lock.version, pkg.version);
+          assert.equal(lock.packages[''].version, pkg.version);
+          assert.equal(lock.name, pkg.name);
+          assert.equal(lock.packages[''].name, pkg.name);
+          NODE
+      - run: npm ci --ignore-scripts
+      - run: npm pack --dry-run
+      - run: npm publish --provenance --access public

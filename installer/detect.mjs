@@ -243,6 +243,7 @@ export function parsePlugins(cli, output) {
       continue;
     }
     if (awaitingMarketplaceTable) {
+      if (/^Remote catalog$/i.test(clean)) continue;
       if ((path.win32.isAbsolute(clean) || path.posix.isAbsolute(clean)) && /[/\\]marketplace\.json$/i.test(clean)) continue;
       throw new Error("Unrecognized plugin response format");
     }

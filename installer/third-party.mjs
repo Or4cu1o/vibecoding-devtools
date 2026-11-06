@@ -45,7 +45,9 @@ function findPlugin(detection, cli, owner, scope) {
     : uniqueList?.state === "known" && Array.isArray(uniqueList.items) ? uniqueList.items : null;
   if (!items || items.some((item) => typeof item?.installed !== "boolean")) return { known: false };
   const plugin = items.find((item) => {
-    if (!item.installed || (item.scope && item.scope !== scope)) return false;
+    // User/global plugins are also loaded in projects. Claude calls global scope "user".
+    const pluginScope = item.scope === "user" ? "global" : item.scope;
+    if (!item.installed || (pluginScope && pluginScope !== scope && pluginScope !== "global")) return false;
     const name = item.id ?? item.name ?? "";
     return owner === "ecc" ? /\b(?:ecc|everything-claude-code)\b/i.test(name) : /\bimpeccable\b/i.test(name);
   });
@@ -86,6 +88,19 @@ export function thirdPartyActions(choices, detection = {}, paths = {}) {
   const npx = (detection.platform ?? process.platform) === "win32" ? "npx.cmd" : "npx";
   const cwd = project ?? home;
   const codexHome = path.join(home, ".codex");
+  const preservePlugin = (owner, cli) => {
+    const { plugin } = findPlugin(detection, cli, owner, choices.scope);
+    if (!plugin) return false;
+    const version = versionOf(plugin.version);
+    const pinned = thirdParty[owner].version;
+    const outdated = version && version.localeCompare(pinned, undefined, { numeric: true }) < 0;
+    const description = `${owner} in ${cli} already installed as a plugin (${version ?? "version unknown"}); active method preserved.`;
+    actions.push({ type: "summary", owner, cli, scope: choices.scope, situation: "same",
+      version, method: "plugin", description });
+    actions.warnings.push(description);
+    if (outdated) actions.warnings.push(`${owner} in ${cli} is outdated: installed plugin ${version}, kit pins ${pinned}. Update through the plugin channel; no alternate installation scheduled.`);
+    return true;
+  };
   const situation = (owner, cli, method) => {
     const { known, plugin } = findPlugin(detection, cli, owner, choices.scope);
     if (!known) {
@@ -116,6 +131,7 @@ export function thirdPartyActions(choices, detection = {}, paths = {}) {
       version: thirdParty[owner].version, situation: state, description: `${owner} in ${cli}`, ...extra });
   };
   for (const cli of eccClis) {
+    if (preservePlugin("ecc", cli)) continue;
     if (cli === "codex" && !fs.existsSync(codexHome)) {
       actions.warnings.push("Open Codex once and run the installer again to install ECC on Codex.");
       continue;
@@ -140,19 +156,21 @@ export function thirdPartyActions(choices, detection = {}, paths = {}) {
   }
   if (impeccableClis.length) {
     const packageName = `${thirdParty.impeccable.packageName}@${thirdParty.impeccable.version}`;
-    const missingItems = impeccableClis.filter((cli) => !hasImpeccableSkill(cli, local ? project : home, local));
+    const manualClis = impeccableClis.filter((cli) => !preservePlugin("impeccable", cli));
+    const missingItems = manualClis.filter((cli) => !hasImpeccableSkill(cli, local ? project : home, local));
     // Group only CLIs with matching situations to avoid reinstalling an existing provider.
     const groups = new Map();
-    for (const cli of missingItems.length ? missingItems : impeccableClis) {
+    for (const cli of missingItems.length ? missingItems : manualClis) {
       const state = missingItems.length ? situation("impeccable", cli, "npx") : "same";
       if (!groups.has(state)) groups.set(state, []);
       groups.get(state).push(cli);
     }
+    if (!groups.size) return actions;
     const warning = "Impeccable 4.8.0 does not support uninstalling; manually check created files before removing them.";
     actions.warnings.push(warning);
     const extra = { cwd: local ? project : home, env: { DO_NOT_TRACK: "1" }, warning };
     const telemetryState = [...groups.keys()].every((state) => state === "same") ? "same" : "new";
-    add("impeccable", impeccableClis[0], npx, ["-y", packageName, "telemetry", "off"], telemetryState, extra);
+    add("impeccable", manualClis[0], npx, ["-y", packageName, "telemetry", "off"], telemetryState, extra);
     for (const [state, clis] of groups) add("impeccable", clis[0], npx,
       ["-y", packageName, "install", `--providers=${clis.map((cli) => providers[cli]).join(",")}`,
         local ? "--project" : "--global", "-y",

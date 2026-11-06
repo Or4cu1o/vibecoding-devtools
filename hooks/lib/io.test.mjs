@@ -2,11 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Readable } from 'node:stream';
 import { spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { parseInput, respond, runHook, shellCommands, windowsInput } from './io.mjs';
+import { isMain, parseInput, respond, runHook, shellCommands, windowsInput } from './io.mjs';
 
 export const shapes = [
   ['Claude Code', command => ({ tool_name: 'PowerShell', tool_input: { command }, cwd: '/project' })],
@@ -18,6 +18,20 @@ export const shapes = [
 export function capture() {
   return { text: '', write(value) { this.text += value; } };
 }
+
+test('T-63: isMain safely handles absent and unreadable entry paths', () => {
+  const original = process.argv[1];
+  try {
+    process.argv[1] = undefined;
+    assert.equal(isMain(import.meta.url), false);
+    const missing = path.join(os.tmpdir(), 'vbd-missing-entry', 'hook.mjs');
+    process.argv[1] = missing;
+    assert.equal(isMain(pathToFileURL(missing).href), true);
+    assert.equal(isMain(import.meta.url), false);
+  } finally {
+    process.argv[1] = original;
+  }
+});
 
 test('Claude Bash keeps exit 2 and stderr; only the Codex turn_id selects JSON denial (T-62)', () => {
   const input = parseInput(JSON.stringify({ tool_name: 'Bash', tool_input: { command: 'x' } }));
@@ -75,6 +89,30 @@ test('All executable hooks explicitly allow the captured 1.5.2 git status invoca
     assert.equal(result.stdout, '{"decision":"allow"}\n');
     assert.equal(result.stderr, '');
   }
+});
+
+test('T-63: symlinked hook enforces protocol denial', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vbd-hook-symlink-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const hook = fileURLToPath(new URL('../maestri-protocol.mjs', import.meta.url));
+  const link = path.join(root, 'maestri-protocol.mjs');
+  try {
+    fs.symlinkSync(path.relative(root, hook), link, 'file');
+  } catch (error) {
+    if (process.platform === 'win32' && ['EPERM', 'EACCES'].includes(error.code)) {
+      t.skip('File symlink creation is not permitted on this Windows host');
+      return;
+    }
+    throw error;
+  }
+  const result = spawnSync(process.execPath, [link], {
+    input: JSON.stringify({ tool_name: 'Bash', tool_input: { command: 'maestri ask Agent invalid' } }),
+    encoding: 'utf8', windowsHide: true, timeout: 10000,
+  });
+  assert.ifError(result.error);
+  assert.equal(result.status, 2);
+  assert.equal(result.stdout, '');
+  assert.match(result.stderr, /valid protocol header/);
 });
 
 test('Captured 1.5.2 payload returns the protocol deny reason', () => {

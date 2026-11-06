@@ -146,15 +146,18 @@ test("Corrupt install-state never causes a second installation; missing state re
   assert.ok(actions.slice(1).every((a) => a.situation === "new"));
 });
 
-test("Installed plugins prevent duplicate methods and classify Codex versions", (t) => {
+test("Installed plugins preserve their channel and report versions, including outdated releases", (t) => {
   const paths = environment(t);
-  for (const [version, expected] of [["2.2.3", "same"], ["2.0.0", "update"], [undefined, "same"]]) {
+  for (const version of ["2.2.3", "2.0.0", "2.3.0", undefined]) {
     const detection = { installed: { plugins: {
       claude: { state: "known", items: [{ name: "ecc@ecc", version: "2.0.0", installed: true }] },
       codex: { state: "known", items: [{ name: "ecc@ecc", version, installed: true }] },
     } } };
     const actions = thirdPartyActions(ecc(["claude", "codex"]), detection, paths);
-    assert.deepEqual(actions.map((a) => a.situation), ["same", expected, expected]);
+    assert.deepEqual(actions.map((a) => a.situation), ["same", "same"]);
+    assert.ok(actions.every((a) => a.type === "summary" && a.method === "plugin"));
+    assert.equal(actions[1].version, version ?? null);
+    assert.equal(actions.warnings.some((w) => /ecc in codex is outdated/.test(w)), version === "2.0.0");
     assert.match(actions.warnings.join("\n"), /active method preserved/);
   }
   const npx = thirdPartyActions(ecc(["codex"]), detected({ thirdParty: { ecc: [
@@ -169,8 +172,35 @@ test("Impeccable never reinstalls plugins alongside new providers", (t) => {
   const actions = thirdPartyActions(choices({ impeccable: { clis: ["claude", "codex"] } }),
     { installed: { plugins: { claude: { state: "known", items: [{ id: "impeccable", installed: true }] },
       codex: { state: "known", items: [] } } } }, environment(t));
-  const installs = actions.filter((a) => a.args.includes("install"));
-  assert.deepEqual(installs.map((a) => [a.args[3], a.situation]), [["--providers=claude", "same"], ["--providers=codex", "new"]]);
+  const installs = actions.filter((a) => a.args?.includes("install"));
+  assert.deepEqual(installs.map((a) => [a.args[3], a.situation]), [["--providers=codex", "new"]]);
+  assert.equal(actions.find((a) => a.cli === "claude").type, "summary");
+});
+
+test("Claude user plugins satisfy global and project requests without commands or telemetry", (t) => {
+  const paths = environment(t);
+  for (const scope of ['global', 'project']) {
+    const actions = thirdPartyActions(choices({ scope, ecc: { clis: ['claude'] },
+      impeccable: { clis: ['claude', 'agy'] } }), { plugins: {
+      claude: { state: 'known', items: [
+        { name: 'ecc@ecc', scope: 'user', installed: true, version: '2.2.3' },
+        { name: 'impeccable@impeccable', scope: 'user', installed: true, version: '4.7.1' },
+      ] }, agy: { state: 'known', items: [] },
+    } }, paths);
+    const summaries = actions.filter((a) => a.type === 'summary');
+    assert.deepEqual(summaries.map((a) => [a.owner, a.version]), [['ecc', '2.2.3'], ['impeccable', '4.7.1']]);
+    assert.ok(actions.filter((a) => a.type === 'command').every((a) => a.cli === 'agy'));
+    assert.equal(actions.find((a) => a.args?.includes('install')).args[3], '--providers=antigravity');
+    assert.match(actions.warnings.join('\n'), /outdated: installed plugin 4.7.1, kit pins 4.8.0/);
+  }
+  const actions = thirdPartyActions(choices({ impeccable: { clis: ['claude'] } }), {
+    plugins: { claude: { state: 'known', items: [
+      { name: 'impeccable@impeccable', scope: 'user', installed: true, version: '4.8.0' },
+    ] } },
+  }, paths);
+  assert.equal(actions.length, 1);
+  assert.equal(actions[0].type, 'summary');
+  assert.doesNotMatch(actions.warnings.join('\n'), /outdated|uninstalling/);
 });
 
 test("Impeccable installs only providers without its skill and remains identical after group changes", (t) => {
@@ -270,7 +300,7 @@ test("Uninstalled catalog plugins never block; only boolean installed status pro
       if (owner === "ecc" && cli === "agy") continue;
       const actions = thirdPartyActions(choices({ scope: "project", [owner]: { clis: [cli] } }),
         { installed: { plugins: { [cli]: { state: "known", items: [item] } } } }, paths);
-      assert.ok(actions.filter((a) => !a.args.includes("telemetry")).every((a) => a.situation === expected));
+      assert.ok(actions.filter((a) => !a.args?.includes("telemetry")).every((a) => a.situation === expected));
       if (expected === "conflict") assert.match(actions.warnings.join("\n"), /Could not confirm/);
       else assert.doesNotMatch(actions.warnings.join("\n"), /Could not confirm/);
     }

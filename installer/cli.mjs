@@ -55,7 +55,7 @@ export function summarizePlan(plan, { home, force = false } = {}) {
       for (const name of fs.readdirSync(action.source).sort()) listSame({ ...action, source: path.join(action.source, name), destination: path.join(action.destination, name) });
     } else identical.push(action);
   };
-  for (const action of plan.filter((a) => a.situation === 'same')) listSame(action);
+  for (const action of plan.filter((a) => a.type !== 'summary' && a.situation === 'same')) listSame(action);
   // Force allows file replacement; conflicting third-party commands remain blocked.
   const conflicts = plan.filter((a) => a.situation === 'conflict' && (!force || a.type === 'command'));
   const deferred = plan.filter((a) => a.type === 'summary');
@@ -256,4 +256,8 @@ export async function main(argv = process.argv.slice(2), options = {}) {
   }
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) process.exitCode = await main();
+if (process.argv[1]) {
+  let entryPath = path.resolve(process.argv[1]);
+  try { entryPath = fs.realpathSync(entryPath); } catch { /* Keep the resolved path if it cannot be read. */ }
+  if (entryPath === fileURLToPath(import.meta.url)) process.exitCode = await main();
+}
