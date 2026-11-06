@@ -5,6 +5,14 @@ Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-11-06
+
+### Changed
+
+- Release workflow runs in the GitHub environment `npm`, which the npm trusted publisher is bound to, and stages the
+  version with `npm stage publish` for the owner to approve with 2FA before it becomes installable.
+- `package.json` `repository.url` uses the `git+https` form npm normalizes to.
+
 ## [1.0.1] - 2026-11-06
 
 ### Added

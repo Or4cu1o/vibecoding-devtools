@@ -1,7 +1,8 @@
 # Releasing
 
 The package is published to the npm registry as `vibecoding-devtools` by `.github/workflows/release.yml`, using npm
-trusted publishing (OIDC) with provenance. The workflow holds no token and no secret.
+trusted publishing (OIDC) with provenance. The workflow holds no token and no secret. Version 1.0.1 was published by
+hand on 2026-11-06, without provenance; later tags publish from the workflow and are staged for approval.
 
 ## Release flow
 
@@ -11,7 +12,27 @@ trusted publishing (OIDC) with provenance. The workflow holds no token and no se
 
 The workflow runs lint, `validate-kit` and the tests on Linux and Windows. The publish job then fails unless the tag
 equals `v` + the `package.json` version, the package name is `vibecoding-devtools` and `repository.url` is
-`https://github.com/Or4cu1o/vibecoding-devtools`. Only then does it run `npm publish --provenance --access public`.
+`git+https://github.com/Or4cu1o/vibecoding-devtools.git` (the form npm normalizes to). Only then does it run
+`npm stage publish --provenance --access public`.
+
+## Approving a release
+
+The workflow only stages the version: it is not installable until the owner approves it with 2FA, on npmjs.com or from
+a terminal:
+
+```bash
+npm stage list vibecoding-devtools
+npm stage approve STAGE-ID
+```
+
+Use `npm stage view STAGE-ID` or `npm stage download STAGE-ID` to inspect a staged version first, and
+`npm stage reject STAGE-ID` to discard it.
+
+## One-time setup on GitHub
+
+In the repository, open **Settings**, then **Environments**, and create an environment named `npm`. Under
+**Deployment branches and tags**, select **Selected branches and tags** and add a tag rule `v*`, so only `v*` tags can
+run the publish job.
 
 ## One-time setup on npmjs.com
 
@@ -20,21 +41,19 @@ equals `v` + the `package.json` version, the package name is `vibecoding-devtool
    - Organization or user: `Or4cu1o`
    - Repository: `vibecoding-devtools`
    - Workflow filename: `release.yml`
-   - Environment name: leave empty (the workflow uses no environment)
-   - Allowed actions: tick direct publishing with `npm publish`. The workflow uses it, and a configuration created
-     after 2026-09-03 permits only staged publishing by default.
+   - Label: `github-release`
+   - Environment name: `npm` (the publish job runs in the GitHub environment of the same name)
+   - Allowed actions: leave direct publishing with `npm publish` unchecked, so the trusted publisher can only stage.
 3. The fields are case-sensitive and must match exactly. The npm docs state that npm does not verify them on save and
    that the first successful publish validates the configuration, which must happen within 2 days.
 
-### Does the package need to exist first?
+### First publish
 
 The npm docs for trusted publishers do not say whether the configuration can be created before the first version
-exists. Check the **Trusted Publisher** section for a package that is not on the registry yet:
-
-- If npmjs.com accepts it, push the tag and the workflow performs the first publish.
-- If it does not, publish `1.0.1` once by hand from a clean checkout of the tag with
-  `npm publish --access public` (this uses your own 2FA login, not a token), then configure the trusted publisher
-  and use the workflow from the next version on. The first version then has no provenance.
+exists, so `1.0.1` was published by hand (`npm publish --access public`, with a personal 2FA login, no token) on
+2026-11-06, without provenance. The trusted publisher was configured afterwards, and the workflow stages every later
+tag with provenance. While setting it up, npmjs.com created a placeholder version `0.0.0-stage`, which can be
+unpublished within 72 hours.
 
 ## Checking provenance
 

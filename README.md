@@ -10,12 +10,12 @@ instalados das fontes oficiais.
 ## Instalação
 
 ```bash
-npx vibecoding-devtools@1.0.1 install    # instala pelo painel
-npx vibecoding-devtools@1.0.1 update     # reutiliza as escolhas salvas
-npx vibecoding-devtools@1.0.1 uninstall  # remove só o que o kit instalou
+npx vibecoding-devtools@1.0.2 install    # instala pelo painel
+npx vibecoding-devtools@1.0.2 update     # reutiliza as escolhas salvas
+npx vibecoding-devtools@1.0.2 uninstall  # remove só o que o kit instalou
 ```
 
-Alternativa pelo GitHub: `npx github:Or4cu1o/vibecoding-devtools#v1.0.1 install` (aceita os mesmos comandos).
+Alternativa pelo GitHub: `npx github:Or4cu1o/vibecoding-devtools#v1.0.2 install` (aceita os mesmos comandos).
 
 Requer Node 22+ e git. O instalador detecta Claude Code, Codex e Antigravity, mostra o plano e só grava depois da
 confirmação. Use `--dry-run` para apenas conferir o plano. Detalhes no [guia do instalador](docs/installer.md).

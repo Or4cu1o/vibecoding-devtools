@@ -40,6 +40,7 @@ jobs:
   publish:
     needs: checks
     runs-on: ubuntu-latest
+    environment: npm
     permissions:
       contents: read
       id-token: write
@@ -66,7 +67,7 @@ jobs:
           const lock = JSON.parse(fs.readFileSync('npm-shrinkwrap.json', 'utf8'));
           assert.equal(process.env.RELEASE_TAG, `v${pkg.version}`, 'Tag must match package version');
           assert.equal(pkg.name, 'vibecoding-devtools');
-          assert.equal(pkg.repository.url, 'https://github.com/Or4cu1o/vibecoding-devtools');
+          assert.equal(pkg.repository.url, 'git+https://github.com/Or4cu1o/vibecoding-devtools.git');
           assert.equal(lock.version, pkg.version);
           assert.equal(lock.packages[''].version, pkg.version);
           assert.equal(lock.name, pkg.name);
@@ -74,4 +75,4 @@ jobs:
           NODE
       - run: npm ci --ignore-scripts
       - run: npm pack --dry-run
-      - run: npm publish --provenance --access public
+      - run: npm stage publish --provenance --access public

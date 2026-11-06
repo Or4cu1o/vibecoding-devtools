@@ -1,11 +1,11 @@
 {
   "name": "vibecoding-devtools",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Rules, skills, hooks and templates for AI development with Claude Code, Codex and Antigravity.",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Or4cu1o/vibecoding-devtools"
+    "url": "git+https://github.com/Or4cu1o/vibecoding-devtools.git"
   },
   "homepage": "https://github.com/Or4cu1o/vibecoding-devtools#readme",
   "bugs": {
