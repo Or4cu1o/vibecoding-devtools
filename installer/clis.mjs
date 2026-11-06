@@ -1,46 +1,46 @@
-// CLIs suportadas: binário, pastas onde os instaladores oficiais costumam pôr o binário e comando oficial de instalação.
-// Fonte: docs/compatibilidade-clis.md, seção "Binário e instalação".
+// Supported CLI binaries, official installation directories and installation commands.
+// Source: docs/cli-compatibility.md, Binary and installation section.
 
 export const CLIS = [
   {
     id: "claude",
-    nome: "Claude Code",
+    name: "Claude Code",
     bin: "claude",
-    pastas: {
+    directories: {
       unix: ["~/.local/bin"],
       win: ["%USERPROFILE%\\.local\\bin", "%LOCALAPPDATA%\\Microsoft\\WinGet\\Links"],
     },
-    instalar: {
+    install: {
       unix: "curl -fsSL https://claude.ai/install.sh | bash",
       win: "irm https://claude.ai/install.ps1 | iex",
     },
   },
   {
     id: "codex",
-    nome: "Codex",
+    name: "Codex",
     bin: "codex",
-    pastas: {
+    directories: {
       unix: ["~/.local/bin"],
       win: ["%LOCALAPPDATA%\\Programs\\OpenAI\\Codex\\bin"],
     },
-    instalar: {
+    install: {
       unix: "curl -fsSL https://chatgpt.com/codex/install.sh | sh",
       win: "irm https://chatgpt.com/codex/install.ps1 | iex",
     },
   },
   {
     id: "agy",
-    nome: "Antigravity",
+    name: "Antigravity",
     bin: "agy",
-    pastas: {
+    directories: {
       unix: ["~/.local/bin"],
       win: ["%LOCALAPPDATA%\\agy\\bin"],
     },
-    instalar: {
+    install: {
       unix: "curl -fsSL https://antigravity.google/cli/install.sh | bash",
       win: "irm https://antigravity.google/cli/install.ps1 | iex",
     },
   },
 ];
 
-export const NODE_MINIMO = 22;
+export const NODE_MINIMUM = 22;

@@ -1,18 +1,34 @@
 {
   "name": "vibecoding-devtools",
-  "version": "0.1.0",
-  "description": "Kit de rules, skills, hooks e modelos para desenvolvimento com IA em Claude Code, Codex e Antigravity.",
+  "version": "0.2.0",
+  "description": "Rules, skills, hooks and templates for AI development with Claude Code, Codex and Antigravity.",
   "license": "MIT",
   "private": true,
   "type": "module",
+  "files": [
+    "installer/*.mjs",
+    "!installer/*.test.mjs",
+    "installer/third-party.json",
+    "hooks/*.mjs",
+    "!hooks/*.test.mjs",
+    "!hooks/README.md",
+    "hooks/lib/*.mjs",
+    "!hooks/lib/*.test.mjs",
+    "rules/",
+    "skills/",
+    "templates/",
+    "README.md",
+    "LICENSE",
+    "npm-shrinkwrap.json"
+  ],
   "bin": {
-    "vibecoding-devtools": "instalador/cli.mjs"
+    "vibecoding-devtools": "installer/cli.mjs"
   },
   "engines": {
     "node": ">=22"
   },
   "scripts": {
-    "test": "node --test \"instalador/**/*.test.mjs\""
+    "test": "node --test \"installer/**/*.test.mjs\" \"hooks/**/*.test.mjs\""
   },
   "dependencies": {
     "@clack/prompts": "1.8.1"
