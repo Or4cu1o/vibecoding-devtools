@@ -48,6 +48,53 @@ Send the text, then `\n` in a separate `--raw` call.
 - Changing the permission mode lowers or raises what the agent may do on the user's behalf: ask the user first.
 - `/approve` approves one retry of a recent auto-review denial.
 
+## Autonomous launch and command rules
+
+Verified on Codex 0.166.0, Windows (2026-11-06): local help, isolated rule checks and a live recruited agent.
+
+```bash
+codex --no-daemon --approve-for-me
+```
+
+`--approve-for-me` routes approval requests through automatic review with the workspace-write sandbox. It does not
+grant full access. Verify `/status`: **Workspace (Approve for me)**. The live check ran `npm.cmd --version` and wrote
+a workspace file without human approval. PowerShell blocked `npm.ps1`; `npm.cmd` worked. Hook trust remains separate:
+the test session continued without trusting hooks, so this check did not exercise hook execution.
+
+Alternative: `codex --no-daemon -a never -s workspace-write` never asks a person; failures return to the agent.
+It does not provide automatic approval for blocked operations. For tasks requiring shell networking, the configuration
+override is `-c sandbox_workspace_write.network_access=true`; this enables outbound network within workspace-write,
+not writes outside it. The key is documented and accepted by the installed parser; outbound access was not tested.
+The unauthenticated fake-home run reported read-only permissions: always verify effective permissions after startup.
+See the [configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference).
+
+For a limited agent, use a dedicated `CODEX_HOME` and a sandbox, with narrow grants in
+`CODEX_HOME/rules/default.rules` (normally `~/.codex/rules/default.rules`):
+
+```python
+prefix_rule(pattern = ['npm', '--version'], decision = 'allow')
+prefix_rule(pattern = ['git', 'push'], decision = 'forbidden')
+```
+
+```bash
+codex --no-daemon -a never -s read-only
+codex execpolicy check --rules /path/to/isolated-codex/rules/default.rules -- npm --version
+```
+
+Set `CODEX_HOME` to the prepared directory before either command. The installed checker returned `allow` for
+`npm --version`, `forbidden` for `git push`, and no match for `npm install`. Write rule files as UTF-8 without BOM;
+the installed parser rejected a BOM. Rules match argument prefixes; choose task-specific command grants.
+
+Approval option `p` saves the proposed prefix as an allow rule in the user layer's `rules/default.rules`; it is not a
+one-time approval. The save location is documented; this review did not press `p` against a real home. Rules load at
+startup, including trusted project layers.
+See [command rules](https://learn.chatgpt.com/docs/agent-configuration/rules).
+
+These grants control execution outside the sandbox; unmatched commands can still run within sandbox permissions.
+Neither `-a never` nor an allow rule list creates a strict commands-only boundary. Use an external enforcement layer
+if that is required. Do not combine limited-agent grants with `--approve-for-me`, which can approve other requests.
+`--dangerously-bypass-approvals-and-sandbox` removes both safeguards: use only at the user's explicit request.
+
 ## Approval prompt
 
 ```text
@@ -125,8 +172,8 @@ subagents; `request_user_input`, `clock.sleep`.
 | Background terminals | `/ps`; `/stop` stops them all |
 | Git worktree | `/worktree` |
 
-The sandbox keeps the network off by default for commands: a task that downloads or calls an API from the shell may need
-a permission change (ask the user).
+The workspace-write sandbox keeps shell networking off by default. Configure needed access at recruitment using the
+launch guidance above; a later change to a running agent follows the skill's permission-prompt policy.
 
 Built-in skills (`~/.codex/skills/.system`): `imagegen`, `openai-docs`, `review-agent`, `skill-creator`,
 `skill-installer`. Without any install by the user, `$` (or `/skills` → List skills) also showed OpenAI curated plugins

@@ -2,6 +2,7 @@
 
 Applies only when you are the Maestro in Maestri coordinating other agents. Details are in the `maestri-budget` skill.
 
+- At recruitment, follow the autonomous launch and limited-agent guidance in the `maestri-agent-cli` skill.
 - Read agent quotas and context only at checkpoints (session start, start or end of a large task, limit warning),
   loading the `maestri-budget` skill. Otherwise, decide from your `ledger.md`.
 - Results from agents on lightweight models (such as Gemini Flash) are verified before being accepted or reported.

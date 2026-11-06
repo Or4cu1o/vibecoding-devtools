@@ -116,6 +116,30 @@ function situationOf(action, items) {
     ? "update" : "conflict";
 }
 
+// Directory copies are recorded per file. Compare their current source tree, not
+// just the directory destination, so removed children also leave the installation.
+export function reconcileUpdate(plan, { home }) {
+  const state = readState({ home });
+  const actions = [];
+  const expand = (action) => {
+    if (action.owner === 'kit' && action.type === 'copy' && fs.lstatSync(action.source).isDirectory()) {
+      const children = entries(action.source);
+      if (!children.length) actions.push({ ...action, situation: situationOf(action, state.items) });
+      for (const child of children) expand({ ...action, source: path.join(action.source, child.name),
+        destination: path.join(action.destination, child.name) });
+    } else actions.push(action.owner === 'kit' && action.destination
+      ? { ...action, situation: situationOf(action, state.items) } : action);
+  };
+  for (const action of plan) expand(action);
+  const key = (item) => JSON.stringify([item.type, path.resolve(item.destination),
+    item.type === 'block' ? item.marker ?? START : null]);
+  const wanted = new Set(actions.filter((a) => a.destination).map(key));
+  const removals = state.items.filter((item) => item.owner === 'kit'
+    && ['copy', 'write', 'block', 'json-merge'].includes(item.type) && !wanted.has(key(item)))
+    .map((item) => ({ ...item, operation: 'remove', situation: 'remove' }));
+  return Object.assign([...removals, ...actions], { warnings: plan.warnings, preparation: plan.preparation });
+}
+
 export function buildPlan(choices, detection, paths) {
   const { home, kit, ecc, project } = paths;
   if (!home || !kit) throw new Error("paths.home and paths.kit are required");
@@ -224,7 +248,7 @@ export function buildPlan(choices, detection, paths) {
       }
     }
   }
-  actions.push(...hookActions(choices, { home, kit }));
+  actions.push(...hookActions(choices, { home, kit, project }));
   const plan = actions.map((action) => ({ ...action, situation: situationOf(action, state.items) }));
   if (warnings.length) plan.warnings = warnings;
   return plan;

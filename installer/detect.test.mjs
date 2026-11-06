@@ -256,6 +256,47 @@ test("Real empty Codex and Claude lists are known; isolated warnings remain unkn
   assert.deepEqual(result.plugins.claude.items, []);
 });
 
+test('Incomplete or diagnostic plugin responses stay unknown and block third-party installation', (t) => {
+  const home = installedHome(t);
+  for (const cli of ['claude', 'codex']) fs.mkdirSync(path.join(home, '.' + cli));
+  const responses = {
+    claude: [
+      'Installed plugins:\nError: authentication failed',
+      'Installed plugins:\nSynced from claude.ai:\n???',
+      'Installed plugins:',
+      'Installed plugins:\nSynced from claude.ai:',
+      'Name | Version | Status',
+      'Installed plugins:\n❯ other@local\nStatus: loaded\n???',
+      'Installed plugins:\n❯ other@local\nStatus: loaded\nError: authentication failed',
+      'Installed plugins:\nThis response is incomplete',
+      'Installed plugins:\nVersion: 1.0.0',
+    ],
+    codex: [
+      'PLUGIN STATUS VERSION SOURCE',
+      'Name | Version | Status\n???',
+      'Installed plugins:\nError: authentication failed',
+      'Marketplace \x60ecc\x60',
+      'ecc@ecc installed, enabled 2.2.3\n???',
+      'ecc@ecc installed, enabled 2.2.3\nError: authentication failed',
+    ],
+  };
+  for (const [cli, outputs] of Object.entries(responses)) for (const stdout of outputs) {
+    assert.throws(() => parsePlugins(cli, stdout), /(?:Unrecognized|Incomplete) plugin response/, stdout);
+    const installed = detectInstalled({ home,
+      clis: [{ id: cli, filePath: process.execPath, state: 'ok' }],
+      executePlugins: () => ({ status: 0, stdout }) });
+    assert.equal(installed.plugins[cli].state, 'unknown', stdout);
+    assert.equal(installed.plugins[cli].items, null, stdout);
+    const actions = thirdPartyActions({ scope: 'global', ecc: { clis: [cli] }, impeccable: { clis: [cli] } },
+      { installed }, { home });
+    for (const owner of ['ecc', 'impeccable']) {
+      const owned = actions.filter((action) => action.owner === owner && !action.args.includes('telemetry'));
+      assert.ok(owned.length > 0);
+      assert.ok(owned.every((action) => action.situation === 'conflict'), stdout);
+    }
+  }
+});
+
 test("Missing Claude and Codex configuration returns empty lists without running CLIs or creating directories", (t) => {
   const home = installedHome(t);
   const clis = ["claude", "codex"].map((id) => ({ id, filePath: process.execPath, state: "ok" }));
@@ -336,6 +377,74 @@ test("Three real empty lists allow complete ECC and Impeccable installation", as
   assert.ok(applied.some((action) => action.type === "command" && action.owner === "ecc"));
   assert.ok(applied.some((action) => action.type === "command" && action.owner === "impeccable"));
   assert.equal(report.conflicts.length, 0);
+});
+
+const syncedClaudePlugins = [
+  'Synced from claude.ai:',
+  '  ❯ brightdata-plugin@synced',
+  '    Version: 1.9.0',
+  '    Path: C:\\Users\\Leonn\\.claude\\plugins\\cache\\synced\\brightdata-plugin\\1.9.0',
+  '    Status: ✓ loaded',
+  '',
+  '  ❯ cowork-plugin-management@synced',
+  '    Version: 0.2.2',
+  '    Path: C:\\Users\\Leonn\\.claude\\plugins\\cache\\synced\\cowork-plugin-management\\0.2.2',
+  '    Status: ✓ loaded',
+].join('\r\n');
+
+test('Claude parses real synced plugin blocks with Windows paths and loaded status', () => {
+  const expected = [
+    ['brightdata-plugin@synced', '1.9.0', true],
+    ['cowork-plugin-management@synced', '0.2.2', true],
+  ];
+  for (const header of ['Synced from claude.ai:', 'Installed plugins:', 'Other plugin section:']) {
+    const items = parsePlugins('claude', syncedClaudePlugins.replace('Synced from claude.ai:', header));
+    assert.deepEqual(items.map((item) => [item.name, item.version, item.installed]), expected);
+    assert.ok(items.every((item) => item.status === 'loaded'));
+  }
+  assert.deepEqual(parsePlugins('claude', syncedClaudePlugins.replaceAll('❯', '→'))
+    .map((item) => [item.name, item.version, item.installed]), expected);
+  for (const status of ['✓ loaded', '✔ enabled', 'installed', 'disabled', 'plugin loaded', 'plugin enabled', 'plugin installed']) {
+    assert.equal(parsePlugins('claude', 'Synced from claude.ai:\n  ❯ example@synced\n    Status: ' + status)[0].installed, true);
+  }
+  assert.equal(parsePlugins('claude', 'Synced from claude.ai:\n  ❯ example@synced\n    Status: not installed')[0].installed, false);
+  assert.throws(() => parsePlugins('claude', 'Synced from claude.ai:\n???'), /Unrecognized plugin response format/);
+});
+
+test('Install dry-run in a fake home accepts synced Claude plugins without blocking ECC or Impeccable', async (t) => {
+  const home = installedHome(t);
+  fs.mkdirSync(path.join(home, '.claude'));
+  const clis = [{ id: 'claude', filePath: process.execPath, state: 'ok' }];
+  const stdout = [];
+  let queries = 0;
+  const code = await main(['install', '--dry-run', '--json', '--clis=claude', '--ecc=claude', '--impeccable=claude'], {
+    home, cwd: home, isTTY: false, out: (line) => stdout.push(line), err: () => {},
+    detect: ({ home: received }) => ({
+      node: { ok: true, version: '22.0.0', minimum: 22 }, git: { ok: true, version: '2.0.0' },
+      gitleaks: { ok: true, version: '8.0.0' }, clis,
+      project: { inRepository: false, reason: 'outside a git repository', stacks: [] },
+      installed: detectInstalled({ home: received, clis, executePlugins: (cmd, args) => {
+        queries++;
+        assert.deepEqual(args, ['plugin', 'list']);
+        return { status: 0, stdout: syncedClaudePlugins };
+      } }),
+    }),
+    thirdParty: { ...thirdPartyApi, fetchEcc: () => assert.fail('Dry-run must not download ECC') },
+    apply: () => assert.fail('Dry-run must not apply'),
+  });
+  assert.equal(code, 0, stdout.join('\n'));
+  assert.equal(queries, 1);
+  const preview = JSON.parse(stdout[0]);
+  assert.equal(preview.detection.installed.plugins.claude.state, 'known');
+  assert.equal(preview.detection.installed.plugins.claude.items.length, 2);
+  const thirdParty = preview.summary.actions.filter((action) => ['ecc', 'impeccable'].includes(action.owner));
+  for (const owner of ['ecc', 'impeccable']) {
+    assert.ok(thirdParty.some((action) => action.owner === owner && action.type === 'command'));
+  }
+  assert.ok(thirdParty.every((action) => action.situation === 'new'));
+  assert.ok(preview.summary.actions.every((action) => action.situation !== 'conflict'));
+  assert.deepEqual(fs.readdirSync(home), ['.claude']);
+  assert.deepEqual(fs.readdirSync(path.join(home, '.claude')), []);
 });
 
 test("Claude reads installed sections and status; Claude and Antigravity JSON respects installed status", () => {

@@ -1,19 +1,26 @@
-import { resolve } from 'node:path';
+import { resolve, isAbsolute, win32 } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 export function parseInput(text) {
   try {
     const input = JSON.parse(text);
-    if (input?.toolCall?.name === 'run_command') {
+    if (typeof input?.toolCall?.name === 'string') {
       const args = input.toolCall.args;
-      if (typeof args?.CommandLine === 'string') {
-        return { cli: 'antigravity', command: args.CommandLine, cwd: args.Cwd, shell: args.Shell ?? input.shell };
-      }
+      // 1.5.2 omits Cwd when using the sole workspace as the default directory.
+      // Multiple workspaces or invalid paths do not establish a safe default.
+      const workspace = Array.isArray(input.workspacePaths) && input.workspacePaths.length === 1
+        ? input.workspacePaths[0] : undefined;
+      const defaultCwd = typeof workspace === 'string' && (isAbsolute(workspace) || win32.isAbsolute(workspace))
+        ? workspace : undefined;
+      return { cli: 'antigravity', command: input.toolCall.name === 'run_command'
+        && typeof args?.CommandLine === 'string' ? args.CommandLine : undefined,
+        cwd: args?.Cwd === undefined ? defaultCwd : args.Cwd, shell: args?.Shell ?? input.shell };
     }
     if (['Bash', 'PowerShell'].includes(input?.tool_name)
         && typeof input?.tool_input?.command === 'string') {
-      // Claude Code and Codex share the same wire format.
-      return { cli: 'claude-codex', command: input.tool_input.command, cwd: input.cwd,
+      // turn_id is a Codex-specific PreToolUse field; Claude also reports Bash.
+      return { cli: typeof input.turn_id === 'string' ? 'codex' : 'claude-codex',
+        command: input.tool_input.command, cwd: input.cwd,
         shell: input.tool_name === 'PowerShell' ? 'PowerShell' : input.shell };
     }
   } catch { /* Invalid JSON is an uncertain input, so allow it. */ }
@@ -22,10 +29,17 @@ export function parseInput(text) {
 
 export function respond(input, reason, { stdout = process.stdout, stderr = process.stderr } = {}) {
   if (input?.cli === 'antigravity') {
-    stdout.write(`${JSON.stringify(reason ? { decision: 'deny', reason } : {})}\n`);
+    stdout.write(`${JSON.stringify(reason ? { decision: 'deny', reason } : { decision: 'allow' })}\n`);
     return 0;
   }
   if (input && reason) {
+    if (input.cli === 'codex') {
+      // PowerShell -Command maps a native exit 2 to exit 1. JSON denial with
+      // success survives that wrapper and is supported by Codex PreToolUse.
+      stdout.write(`${JSON.stringify({ hookSpecificOutput: { hookEventName: 'PreToolUse',
+        permissionDecision: 'deny', permissionDecisionReason: reason } })}\n`);
+      return 0;
+    }
     stderr.write(`${reason}\n`);
     return 2;
   }
@@ -41,7 +55,7 @@ export async function runHook(check, {
     let text = '';
     for await (const chunk of stdin) text += chunk;
     input = parseInput(text);
-    if (input) reason = await check(input, { stderr });
+    if (typeof input?.command === 'string') reason = await check(input, { stderr });
   } catch { /* A hook must never deny because of its own failure. */ }
   return respond(input, reason, { stdout, stderr });
 }
@@ -62,7 +76,7 @@ export function windowsInput(input) {
 }
 
 // Deliberately parse only literal shell words. No expansion or shell execution.
-// Unsupported syntax returns null, making both hooks fail open.
+// Unsupported syntax returns null, making hooks fail open.
 export function shellCommands(command, { windows = process.platform === 'win32' } = {}) {
   const commands = [];
   let words = [];
@@ -92,7 +106,7 @@ export function shellCommands(command, { windows = process.platform === 'win32' 
       } else word += char;
       continue;
     }
-    if (/[$`%()<>^]/.test(char) || (char === '@' && /['"]/.test(command[i + 1] ?? ''))) return null;
+    if (/[$`%(){}<>^]/.test(char) || (char === '@' && /['"]/.test(command[i + 1] ?? ''))) return null;
     if (char === '"' || char === "'") {
       quote = char;
       started = true;
@@ -111,5 +125,7 @@ export function shellCommands(command, { windows = process.platform === 'win32' 
   }
   if (quote) return null;
   pushCommand();
+  // Literal command lists do not model shell blocks or conditional execution.
+  if (commands.some(words => /^(?:if|then|else|elif|fi|for|foreach|while|do|done|until|switch|case|esac|function|filter|try|catch|finally|begin|process|end|trap|class)$/i.test(words[0]))) return null;
   return commands;
 }

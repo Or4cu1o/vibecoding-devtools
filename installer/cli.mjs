@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { detectAll } from './detect.mjs';
-import { buildPlan } from './plan.mjs';
+import { buildPlan, reconcileUpdate } from './plan.mjs';
 import { execute, uninstall, START, END } from './execute.mjs';
 import { readState, hashContent } from './state.mjs';
 import { parseFlags, choicesFromFlags, panel, confirmExecution, Cancellation } from './panel.mjs';
@@ -12,18 +12,20 @@ import * as thirdPartyApi from './third-party.mjs';
 import { jsonMergeSituation } from './json-merge.mjs';
 import { CODEX_HOOK_APPROVAL } from './hooks.mjs';
 
-export const HELP = `Usage: vibecoding-devtools [install|detect|uninstall] [flags]
+export const HELP = `Usage: vibecoding-devtools [install|update|detect|uninstall] [flags]
 Default command: install. Without a TTY: use --yes to apply or --dry-run to preview.
+Update reuses saved install choices; explicit flags override them. Run install first if no choices are saved.
+Update removes unchanged kit-owned items absent from the new plan; edited and third-party items are retained.
 --clis claude,codex,agy        Kit CLIs (default: detected; empty or none: no CLIs)
 --scope global|project       Global by default; project requires a git repository
 --project                    Shortcut for --scope project
---maestri                    Include Maestri rules and skills
+--maestri / --no-maestri     Include or disable Maestri rules and skills
 --hooks / --no-hooks         Install kit hooks (default: enabled; Maestri hook requires --maestri)
 --ecc claude,codex            ECC CLIs (default: none)
---ecc-hooks                  Enable ECC hooks (default: disabled)
+--ecc-hooks / --no-ecc-hooks  Enable or disable ECC hooks (default: disabled)
 --ecc-stacks typescript,python  Project ECC packages (default: detected stacks)
 --impeccable claude,codex,agy  Impeccable CLIs (default: none)
---impeccable-hooks           Enable Impeccable hooks (default: disabled)
+--impeccable-hooks / --no-impeccable-hooks  Enable or disable Impeccable hooks (default: disabled)
 --dry-run  --yes  --force  --json  --help
 Without a cache, ECC rules are summarized without downloading; ECC is fetched only after confirmation.
 Exit codes: 0 success; 1 something was skipped, blocked or failed; 2 usage error.`;
@@ -60,6 +62,7 @@ export function summarizePlan(plan, { home, force = false } = {}) {
   const preview = execute(plan.filter((a) => a.type !== 'summary' && a.situation !== 'same' && (a.situation !== 'conflict' || (force && a.type !== 'command'))), { home, dryRun: true, force });
   const state = readState({ home });
   const actions = preview.actions.map((action) => {
+    if (action.situation === 'remove') return action;
     if (action.status === 'same') return { ...action, situation: 'same' };
     if (action.type === 'command') {
       const same = state.items.some((i) => i.type === 'command' && i.cmd === action.cmd && JSON.stringify(i.args) === JSON.stringify(action.args) && i.cwd === (action.cwd ?? home) && i.cli === action.cli && i.owner === action.owner && JSON.stringify(i.env) === JSON.stringify(action.env));
@@ -123,7 +126,9 @@ const formatAction = (a) => a.type === 'command' ? JSON.stringify([a.cmd, ...a.a
 const uniqueWarnings = (warnings) => {
   const unique = new Map();
   for (const warning of warnings) {
-    const key = typeof warning === 'string' ? warning : warning.reason ?? JSON.stringify(warning);
+    const destination = typeof warning === 'object' ? warning.item?.destination ?? warning.destination : undefined;
+    const key = (typeof warning === 'string' ? warning : warning.reason ?? JSON.stringify(warning))
+      + (destination ? `\n${destination}` : '');
     // Preserve item details when the same warning also appears as plan text.
     if (!unique.has(key) || typeof unique.get(key) === 'string') unique.set(key, warning);
   }
@@ -133,8 +138,9 @@ const printSummary = (summary, out) => {
   out('Summary:');
   for (const a of summary.actions) out(`[${a.situation ?? a.status}] ${a.type} ${formatAction(a)}${a.reason ? ` — ${a.reason}` : ''}`);
   for (const e of summary.errors) out(`Error: ${e.message}`);
-  for (const a of summary.warnings ?? []) out(`Warning: ${a.reason ?? a}`);
+  for (const a of summary.warnings ?? []) out(`Warning: ${warningText(a)}`);
 };
+const warningText = (warning) => `${warning.reason ?? warning}${warning.item?.destination ? ` (${warning.item.destination})` : ''}`;
 
 // Return an exit code; injected dependencies support noninteractive tests with fake homes.
 export async function main(argv = process.argv.slice(2), options = {}) {
@@ -175,7 +181,12 @@ export async function main(argv = process.argv.slice(2), options = {}) {
       else printSummary(result, out);
       return result.ok ? 0 : 1;
     }
-    const detection = await detect({ cwd, home, env: { ...process.env, HOME: home, USERPROFILE: home } });
+    const saved = flags.command === 'update' ? readState({ home }).choices : undefined;
+    if (flags.command === 'update' && !saved) throw new Error('No saved installation choices. Run install first to record your choices, then run update.');
+    const reuseProject = saved?.scope === 'project' && !flags.project && flags.scope === undefined;
+    const detectionCwd = reuseProject ? saved.root : cwd;
+    if (reuseProject && (!saved.root || !path.isAbsolute(saved.root))) throw new Error('Invalid saved project root. Run install to record your choices again.');
+    const detection = await detect({ cwd: detectionCwd, home, env: { ...process.env, HOME: home, USERPROFILE: home } });
     if (flags.command === 'detect') {
       if (flags.json) emit(detection); else out(formatDetection(detection));
       return detection.node.ok && detection.git.ok ? 0 : 1;
@@ -183,12 +194,16 @@ export async function main(argv = process.argv.slice(2), options = {}) {
     if (!flags.json) out(formatDetection(detection));
     if (!detection.node.ok || !detection.git.ok) throw new Error(`Missing prerequisites: ${!detection.node.ok ? 'Node >=22 (https://nodejs.org) ' : ''}${!detection.git.ok ? 'git (https://git-scm.com/downloads)' : ''}`);
     if (!isTTY && !flags.yes && !flags['dry-run']) throw new Error('Without a TTY: use --yes to apply or --dry-run to preview');
-    const choices = isTTY && !flags.hasChoices && !flags.yes && !flags['dry-run'] && !flags.json ? await choose(detection) : choicesFromFlags(flags, detection);
+    const choices = !saved && isTTY && !flags.hasChoices && !flags.yes && !flags['dry-run'] && !flags.json ? await choose(detection) : choicesFromFlags(flags, detection, saved);
+    if (reuseProject && choices.root !== saved.root) throw new Error('Saved project root is no longer a git repository. Run install again or override --scope.');
     if (!choices.clis.length && !choices.ecc.clis.length && !choices.impeccable.clis.length) throw new Error('No CLI selected; use --clis claude,codex,agy');
     // detectAll includes state, matching skills and plugins; preserve its detector contract.
     detection.installed ??= { state: readState({ home }), skills: [], plugins: {} };
     const paths = { home, kit, project: choices.root ?? detection.project.root };
-    const preparePlan = () => planInstallation(choices, detection, paths, { prepareThirdParty: prepare, planBuilder, thirdParty });
+    const preparePlan = async () => {
+      const planned = await planInstallation(choices, detection, paths, { prepareThirdParty: prepare, planBuilder, thirdParty });
+      return flags.command === 'update' ? reconcileUpdate(planned, { home }) : planned;
+    };
     let plan = await preparePlan();
     let summary = summarizePlan(plan, { home, force: flags.force });
     warnings = [...summary.warnings, ...(!detection.gitleaks.ok ? ['gitleaks is recommended but missing or unavailable; install: https://github.com/gitleaks/gitleaks#installing'] : [])];
@@ -212,8 +227,8 @@ export async function main(argv = process.argv.slice(2), options = {}) {
     // Nonempty directories are already expanded; copying them again would rewrite skipped files.
     const pendingActions = summary.actions.filter((a) => a.type !== 'summary' && a.situation !== 'same' && a.situation !== 'conflict'
       && (!a.directory || fs.readdirSync(a.source).length === 0));
-    const result = pendingActions.length
-      ? await apply(pendingActions, { home, force: flags.force ?? false, dryRun: false })
+    const result = pendingActions.length || !summary.actions.some((a) => a.situation === 'conflict')
+      ? await apply(pendingActions, { home, force: flags.force ?? false, dryRun: false, choices })
       : { ok: true, dryRun: false, actions: [], conflicts: [], warnings: [], errors: [] };
     if (!result || typeof result.ok !== 'boolean'
       || ['actions', 'conflicts', 'warnings', 'errors'].some((field) => !Array.isArray(result[field]))) {
@@ -228,7 +243,7 @@ export async function main(argv = process.argv.slice(2), options = {}) {
     const finalWarnings = uniqueWarnings([...warnings, ...result.warnings, ...(codexHooks ? [CODEX_HOOK_APPROVAL] : [])]);
     if (flags.json) emit({ ...result, choices, summary, warnings: finalWarnings });
     else {
-      for (const warning of finalWarnings) out(`Warning: ${warning.reason ?? warning}`);
+      for (const warning of finalWarnings) out(`Warning: ${warningText(warning)}`);
       for (const e of result.errors) err(`Error: ${e.message}`);
       out(`Applied: ${result.actions.length}; identical: ${summary.actions.filter((a) => a.situation === 'same').length}; conflicts: ${result.conflicts.length}.`);
     }

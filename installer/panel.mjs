@@ -11,23 +11,40 @@ const uniqueList = (value, allowed, name) => {
 };
 
 export function parseFlags(args = []) {
-  const booleans = ['dry-run', 'yes', 'force', 'json', 'maestri', 'hooks', 'no-hooks', 'ecc-hooks', 'impeccable-hooks', 'project', 'help'];
+  const booleans = ['dry-run', 'yes', 'force', 'json', 'maestri', 'no-maestri', 'hooks', 'no-hooks', 'ecc-hooks', 'no-ecc-hooks', 'impeccable-hooks', 'no-impeccable-hooks', 'project', 'help'];
   const strings = ['clis', 'cli', 'scope', 'ecc', 'ecc-clis', 'ecc-stacks', 'stacks', 'impeccable', 'impeccable-clis'];
   const options = Object.fromEntries([...booleans.map((k) => [k, { type: 'boolean' }]), ...strings.map((k) => [k, { type: 'string' }])]);
   const { values, positionals } = parseArgs({ args, options, allowPositionals: true, strict: true });
   if (positionals.length > 1) throw new Error('Specify only one command');
   const command = positionals[0] ?? 'install';
-  if (!['install', 'detect', 'uninstall'].includes(command)) throw new Error(`Unknown command: ${command}`);
+  if (!['install', 'update', 'detect', 'uninstall'].includes(command)) throw new Error(`Unknown command: ${command}`);
   for (const [a, b] of [['clis', 'cli'], ['ecc', 'ecc-clis'], ['ecc-stacks', 'stacks'], ['impeccable', 'impeccable-clis']]) {
     if (values[a] !== undefined && values[b] !== undefined) throw new Error(`Use only --${a} or --${b}`);
   }
   if (values.project && values.scope && values.scope !== 'project') throw new Error('--project conflicts with --scope');
-  if (values.hooks && values['no-hooks']) throw new Error('Use only --hooks or --no-hooks');
+  for (const name of ['maestri', 'hooks', 'ecc-hooks', 'impeccable-hooks']) {
+    if (values[name] && values[`no-${name}`]) throw new Error(`Use only --${name} or --no-${name}`);
+  }
   return { command, ...values,
-    hasChoices: ['clis', 'cli', 'scope', 'project', 'maestri', 'hooks', 'no-hooks', 'ecc', 'ecc-clis', 'ecc-hooks', 'ecc-stacks', 'stacks', 'impeccable', 'impeccable-clis', 'impeccable-hooks'].some((k) => values[k] !== undefined) };
+    hasChoices: [...strings, 'project', 'maestri', 'no-maestri', 'hooks', 'no-hooks', 'ecc-hooks', 'no-ecc-hooks', 'impeccable-hooks', 'no-impeccable-hooks'].some((k) => values[k] !== undefined) };
 }
 
-export function choicesFromFlags(flags, detection) {
+export function choicesFromFlags(flags, detection, saved) {
+  if (saved) {
+    // Normalize aliases before merging, so an explicit alias wins over saved choices.
+    const scope = flags.project ? 'project' : flags.scope ?? saved.scope;
+    const ecc = flags.ecc ?? flags['ecc-clis'] ?? saved.ecc.clis.join(',');
+    const impeccable = flags.impeccable ?? flags['impeccable-clis'] ?? saved.impeccable.clis.join(',');
+    flags = { ...flags, scope, clis: flags.clis ?? flags.cli ?? saved.clis.join(','), ecc, impeccable,
+      maestri: flags.maestri ?? saved.maestri, hooks: flags.hooks ?? saved.hooks,
+      'ecc-hooks': flags['ecc-hooks'] ?? (ecc && ecc !== 'none' ? saved.ecc.hooks : false),
+      'impeccable-hooks': flags['impeccable-hooks'] ?? (impeccable && impeccable !== 'none' ? saved.impeccable.hooks : false),
+      'ecc-stacks': flags['ecc-stacks'] ?? flags.stacks ?? (scope === 'project' && ecc && ecc !== 'none' ? saved.ecc.stacks.join(',') : '') };
+  }
+  flags = { ...flags };
+  for (const name of ['maestri', 'hooks', 'ecc-hooks', 'impeccable-hooks']) {
+    if (flags[`no-${name}`]) flags[name] = false;
+  }
   const clis = flags.clis ?? flags.cli;
   const targets = clis === undefined ? (detection.clis ?? []).filter((c) => ['ok', 'off-path'].includes(c.state)).map((c) => c.id) : uniqueList(clis, CLIS, 'CLI');
   const scope = flags.project ? 'project' : flags.scope ?? 'global';

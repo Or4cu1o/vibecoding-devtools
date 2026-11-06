@@ -5,9 +5,6 @@ description: Surface-based security checklist for High-risk work - money and val
 
 # Security review
 
-**Problem solved:** gaps involving money, data or access. **Cost avoided:** reviewing everything on every change;
-this skill applies only at High risk (the `risk-process` rule) and only to touched surfaces.
-
 ## Steps
 
 1. List the surfaces the change touches (the `risk-triage` skill).

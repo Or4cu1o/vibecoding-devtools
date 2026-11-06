@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { isUtf8 } from 'node:buffer';
-import { readState, saveState, hashContent, writeAtomic, withLock } from './state.mjs';
+import { readState, saveState, hashContent, writeAtomic, withLock, kitVersion } from './state.mjs';
 import { mergeJson, jsonMergeSnapshot } from './json-merge.mjs';
 
 export const START = '<!-- vibecoding-devtools:start -->';
@@ -142,7 +142,7 @@ function session(home, dryRun, r, work) {
           if (item.previous) save(item.previous); else forget(item);
         } else r.warnings.push({ item, reason: 'Pending item has unexpected content; retained for review' });
       }
-      work({ state, save, forget });
+      work({ state, save, forget, persist, virtualFiles: new Map() });
       return r;
     }, { dryRun });
   } catch (e) {
@@ -165,13 +165,30 @@ function effect(item, previous, current, content, context, r, action, apply, sta
 }
 
 // Return { ok, dryRun, actions, conflicts, warnings, errors }; skip identical items and conflicts.
-export function execute(plan, { dryRun = false, force = false, home = os.homedir() } = {}) {
+export function execute(plan, { dryRun = false, force = false, home = os.homedir(), choices } = {}) {
   const r = report(dryRun);
   return session(home, dryRun, r, (context) => {
     const { state } = context;
+    if (choices && (state.version !== kitVersion || JSON.stringify(state.choices) !== JSON.stringify(choices))) {
+      state.choices = structuredClone(choices);
+      context.persist();
+    }
     const conflict = (action, reason) => { r.conflicts.push({ ...action, reason }); r.ok = false; };
+    const removals = plan.filter((action) => action.operation === 'remove');
+    if (removals.some((action) => action.owner !== 'kit' || action.type === 'command')) {
+      throw new Error('Update removes only kit-owned filesystem items');
+    }
+    const obsolete = removals.map((action) => state.items.find((i) => identity(i) === identity(action)))
+      .filter((item) => item?.owner === 'kit').map((item) => ({ ...item, operation: 'remove', situation: 'remove' }));
+    const registrations = obsolete.filter((item) => item.type === 'json-merge');
+    const files = obsolete.filter((item) => item.type !== 'json-merge');
+    removeItems(context, r, registrations, home);
+    if (!r.ok) return;
     const apply = (action) => {
       if (!['kit', 'ecc', 'impeccable'].includes(action.owner) || !action.cli) throw new Error('Action requires owner and cli');
+      if (action.operation === 'remove') {
+        return;
+      }
       if (action.situation === 'same') { r.actions.push({ ...action, status: 'same' }); return; }
       if (action.situation === 'conflict' && !force) { conflict(action, 'Conflict identified in plan'); return; }
       if (action.type === 'command') {
@@ -229,6 +246,7 @@ export function execute(plan, { dryRun = false, force = false, home = os.homedir
         }
         content = merged.content;
         extra = { hash: merged.after.hash, format: action.format, scriptPaths: action.scriptPaths,
+          scriptReferences: action.scriptReferences,
           created: previous?.created ?? !st, createdPaths: previous?.createdPaths ?? merged.createdPaths };
       } else if (action.type === 'block') {
         const text = current ? utf8(current) : '';
@@ -259,11 +277,15 @@ export function execute(plan, { dryRun = false, force = false, home = os.homedir
       const item = { type: action.type, destination, owner: action.owner, cli: action.cli, ...extra };
       effect(item, previous, current, content, context, r, { ...action, destination },
         () => writeAtomic(destination, content));
+      if (dryRun) context.virtualFiles.set(destination, content);
     };
     for (const action of plan) {
       try { apply(action); }
       catch (e) { r.ok = false; r.errors.push({ action, message: e.message }); break; }
     }
+    // Retarget registrations only after installing their replacement runtime.
+    // Cleanup must see the resulting registrations, including retained conflicts.
+    if (r.ok) removeItems(context, r, files, home);
   });
 }
 
@@ -271,55 +293,94 @@ export function execute(plan, { dryRun = false, force = false, home = os.homedir
 export function uninstall({ home = os.homedir(), dryRun = false } = {}) {
   const r = report(dryRun);
   return session(home, dryRun, r, (context) => {
-    const { state } = context;
-    const isRegistration = (item) => ['block', 'json-merge'].includes(item.type);
-    const order = [...state.items].reverse().sort((a, b) => Number(isRegistration(b)) - Number(isRegistration(a)));
-    const virtualFiles = new Map();
-    for (const item of order) {
-      try {
-        if (item.pending) { r.warnings.push({ item, reason: 'Pending item was not removed' }); continue; }
-        if (item.type === 'command') {
-          const inverse = item.uninstall ?? item.uninstallation;
-          if (!inverse) { r.warnings.push({ item, reason: 'Command has no registered uninstall; check third-party files' }); continue; }
-          const action = { ...inverse, cwd: inverse.cwd ?? item.cwd, env: { ...item.env, ...inverse.env } };
-          const prepared = command(action, home);
-          effect(item, item, null, null, context, r, item, () => run(prepared, action), 'removed');
-          continue;
-        }
-        checkPath(item.destination);
-        const st = exists(item.destination);
-        if (st && !st.isFile()) throw new Error('Destination is not a regular file');
-        const current = virtualFiles.has(item.destination) ? virtualFiles.get(item.destination) : st ? fs.readFileSync(item.destination) : null;
-        if (current === null) {
-          context.forget(item);
-          r.actions.push({ ...item, status: 'missing' });
-          continue;
-        }
-        let remaining = null;
-        if (item.type === 'json-merge') {
-          let snapshot;
-          try { snapshot = jsonMergeSnapshot(current, item); }
-          catch (e) { r.warnings.push({ item, reason: `${e.message}; retained` }); continue; }
-          if (!snapshot.count) { context.forget(item); r.actions.push({ ...item, status: 'missing' }); continue; }
-          if (snapshot.hash !== item.hash) { r.warnings.push({ item, reason: 'Modified JSON entries; retained' }); continue; }
-          remaining = mergeJson(current, item, { remove: true }).content;
-          if (item.created && Object.keys(JSON.parse(remaining.toString('utf8').replace(/^\uFEFF/, ''))).length === 0) remaining = null;
-        } else if (item.type === 'block') {
-          const text = utf8(current);
-          if (text === null) { r.warnings.push({ item, reason: 'File is not valid UTF-8; retained' }); continue; }
-          const block = blockRange(text);
-          if (!block) { context.forget(item); r.actions.push({ ...item, status: 'missing' }); continue; }
-          if (hashContent(block.content) !== item.hash) { r.warnings.push({ item, reason: 'Modified block; retained' }); continue; }
-          const remainingText = withoutBlock(text, block, item);
-          remaining = item.created && remainingText === '' ? null : Buffer.from(remainingText);
-        } else if (hashContent(current) !== item.hash) {
-          r.warnings.push({ item, reason: 'Modified file; retained' }); continue;
-        }
-        effect(item, item, current, remaining, context, r, item, () => {
-          if (remaining === null) fs.unlinkSync(item.destination); else writeAtomic(item.destination, remaining);
-        }, 'removed');
-        if (dryRun) virtualFiles.set(item.destination, remaining);
-      } catch (e) { r.ok = false; r.errors.push({ item, message: e.message }); break; }
-    }
+    removeItems(context, r, context.state.items, home);
   });
+}
+
+function runtimeRegistration(item, context) {
+  if (!['copy', 'write'].includes(item.type)) return null;
+  const destination = path.resolve(item.destination);
+  for (const registration of context.state.items.filter((entry) => entry.type === 'json-merge')) {
+    const paths = [...new Set([...(registration.scriptPaths ?? []),
+      ...(registration.previous?.scriptPaths ?? [])])].filter((script) => {
+      const runtime = path.dirname(path.resolve(script));
+      return destination === path.resolve(script) || destination.startsWith(path.join(runtime, 'lib') + path.sep);
+    });
+    if (!paths.length) continue;
+    if (registration.pending) return registration;
+    try {
+      checkPath(registration.destination);
+      const current = context.virtualFiles.has(registration.destination)
+        ? context.virtualFiles.get(registration.destination)
+        : exists(registration.destination) ? fs.readFileSync(registration.destination) : null;
+      if (current === null) continue;
+      // scriptPaths also contains legacy paths used for ownership detection.
+      // Inspect the actual commands so a successful retarget releases those paths.
+      if (jsonMergeSnapshot(current, {
+        ...registration, scriptPaths: paths,
+        scriptReferences: (registration.scriptReferences ?? []).filter((reference) =>
+          paths.some((script) => path.resolve(script) === path.resolve(path.dirname(registration.destination),
+            '..', reference.replace(/^\$\{CLAUDE_PROJECT_DIR\}\//, '')))),
+      }).count) return registration;
+    } catch { return registration; } // Unreadable or invalid registrations remain dependencies.
+  }
+  return null;
+}
+
+function removeItems(context, r, items, home) {
+  const dryRun = r.dryRun;
+  const isRegistration = (item) => ['block', 'json-merge'].includes(item.type);
+  const order = [...items].reverse().sort((a, b) => Number(isRegistration(b)) - Number(isRegistration(a)));
+  const { virtualFiles } = context;
+  for (const item of order) {
+    try {
+      if (item.pending) { r.warnings.push({ item, reason: 'Pending item was not removed' }); continue; }
+      if (item.type === 'command') {
+        const inverse = item.uninstall ?? item.uninstallation;
+        if (!inverse) { r.warnings.push({ item, reason: 'Command has no registered uninstall; check third-party files' }); continue; }
+        const action = { ...inverse, cwd: inverse.cwd ?? item.cwd, env: { ...item.env, ...inverse.env } };
+        const prepared = command(action, home);
+        effect(item, item, null, null, context, r, item, () => run(prepared, action), 'removed');
+        continue;
+      }
+      checkPath(item.destination);
+      const st = exists(item.destination);
+      if (st && !st.isFile()) throw new Error('Destination is not a regular file');
+      const current = virtualFiles.has(item.destination) ? virtualFiles.get(item.destination) : st ? fs.readFileSync(item.destination) : null;
+      if (current === null) {
+        context.forget(item);
+        r.actions.push({ ...item, status: 'missing' });
+        continue;
+      }
+      let remaining = null;
+      if (item.type === 'json-merge') {
+        let snapshot;
+        try { snapshot = jsonMergeSnapshot(current, item); }
+        catch (e) { r.warnings.push({ item, reason: `${e.message}; retained` }); continue; }
+        if (!snapshot.count) { context.forget(item); r.actions.push({ ...item, status: 'missing' }); continue; }
+        if (snapshot.hash !== item.hash) { r.warnings.push({ item, reason: 'Modified JSON entries; retained' }); continue; }
+        remaining = mergeJson(current, item, { remove: true }).content;
+        if (item.created && Object.keys(JSON.parse(remaining.toString('utf8').replace(/^\uFEFF/, ''))).length === 0) remaining = null;
+      } else if (item.type === 'block') {
+        const text = utf8(current);
+        if (text === null) { r.warnings.push({ item, reason: 'File is not valid UTF-8; retained' }); continue; }
+        const block = blockRange(text);
+        if (!block) { context.forget(item); r.actions.push({ ...item, status: 'missing' }); continue; }
+        if (hashContent(block.content) !== item.hash) { r.warnings.push({ item, reason: 'Modified block; retained' }); continue; }
+        const remainingText = withoutBlock(text, block, item);
+        remaining = item.created && remainingText === '' ? null : Buffer.from(remainingText);
+      } else if (hashContent(current) !== item.hash) {
+        r.warnings.push({ item, reason: 'Modified file; retained' }); continue;
+      }
+      const registration = runtimeRegistration(item, context);
+      if (registration) {
+        r.warnings.push({ item, reason: `Hook registration still references runtime; retained: ${registration.destination}` });
+        continue;
+      }
+      effect(item, item, current, remaining, context, r, item, () => {
+        if (remaining === null) fs.unlinkSync(item.destination); else writeAtomic(item.destination, remaining);
+      }, 'removed');
+      if (dryRun) virtualFiles.set(item.destination, remaining);
+    } catch (e) { r.ok = false; r.errors.push({ item, message: e.message }); break; }
+  }
 }

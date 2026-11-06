@@ -31,7 +31,7 @@ is distributed only through the installer, never as a plugin (see `docs/cli-comp
 - **Kit hooks:** secret scanning is on by default; the panel and `--hooks` control installation. The protocol hook
   also requires the Maestri pack. Codex users approve hooks in `/hooks`.
 - **Maestri:** only by panel selection or the `--maestri` flag.
-- **Maintenance:** `uninstall` in 0.1.0; `update` later. Both use the state recorded at installation.
+- **Maintenance:** `update` and `uninstall` use the state recorded at installation (see Maintenance below).
 
 ## Entry point
 
@@ -43,6 +43,7 @@ an absent CLI, never executes it.
 ```bash
 npx github:Or4cu1o/vibecoding-devtools#v0.1.0             # panel
 npx github:Or4cu1o/vibecoding-devtools#v0.1.0 uninstall   # removes only what the kit installed
+npx github:Or4cu1o/vibecoding-devtools#v1.0.0 update      # updates using saved choices
 ```
 
 ## Flow
@@ -87,7 +88,7 @@ Building the plan writes nothing, enabling dry-run, tests and uninstall. One own
 | `state.mjs` | Read and write `~/.vibecoding-devtools/state.json`. |
 | `execute.mjs` | Apply the plan (or only list, in dry-run), record state and uninstall from state. |
 | `panel.mjs` | `@clack/prompts` panel and the same choices through flags without the panel. |
-| `cli.mjs` | Commands `detect`, `install` (default), `uninstall`; flags `--dry-run`, `--yes`, `--json`. |
+| `cli.mjs` | Commands `detect`, `install` (default), `update`, `uninstall`; flags `--dry-run`, `--yes`, `--json`. |
 
 **Plan actions**, each with `owner` (`kit`, `ecc` or `impeccable`) and `cli`:
 
@@ -123,6 +124,39 @@ authorizes installation: the third party is blocked with a warning. A third part
 `--project`); kit hooks yes or no (`--hooks`); Maestri package yes or no; ECC (CLIs, hooks yes or no, stack packages);
 Impeccable (CLIs).
 
+## Maintenance
+
+`install` saves the resolved choices in `~/.vibecoding-devtools/state.json`: kit CLIs, scope, project root for project
+scope, Maestri, kit hooks, ECC CLIs/hooks/stack packages and Impeccable CLIs/hooks. Choices are recorded after
+confirmation, including when every selected item is already identical. Dry runs and cancelled operations save nothing.
+Choices remain available after a partial installation so the same selection can be retried.
+
+Run `update` from the desired kit version to reuse those choices. It detects prerequisites, CLIs, stacks and installed
+items again, builds a fresh plan from the kit being run, shows the same new/same/update/conflict situations as install,
+and asks for confirmation. It does not resolve or download a newer kit release automatically. A saved project install
+uses its recorded root even when update runs elsewhere. Missing saved choices, including older states that contain
+only installed items, produce an error suggesting `install`.
+
+Explicit flags override saved choices. `--project` or `--scope project` selects the current repository instead of the
+saved root; `--scope global` selects global scope. List flags accept `none` to clear a selection. Use `--no-maestri`,
+`--no-hooks`, `--no-ecc-hooks` or `--no-impeccable-hooks` to disable a saved option. Clearing a third-party CLI
+selection also clears its hooks and stack packages; global scope clears project stack packages. Overrides are saved
+when applied.
+Update also shows **remove** for tracked kit-owned items absent from the new plan, including dropped files inside
+copied folders, managed blocks and JSON hook entries. It uses the uninstall safeguards: unchanged items are removed;
+edited items are retained with a warning and remain recorded for review or uninstall. `--force` does not override
+this removal safeguard. Third-party items are never removed by update. Unrelated content and empty folders remain.
+
+```bash
+npx github:Or4cu1o/vibecoding-devtools#v1.0.0 update --dry-run --json
+npx github:Or4cu1o/vibecoding-devtools#v1.0.0 update --yes
+npx github:Or4cu1o/vibecoding-devtools#v1.0.0 update --clis codex --no-maestri --yes
+```
+
+`update` supports `--dry-run`, `--json`, `--yes` and `--force` with the same safeguards and exit codes as install.
+Without a TTY, applying requires `--yes`; JSON output also requires `--yes` to apply. Dry runs write nothing and do not
+download ECC. `uninstall` continues to use item ownership and hashes, preserving changed files and unrelated content.
+
 ## What goes into each CLI
 
 | Item | Claude Code | Codex | Antigravity |
@@ -135,7 +169,10 @@ Impeccable (CLIs).
 | Project template | `CLAUDE.md` with `@AGENTS.md` | `AGENTS.md` | `AGENTS.md` |
 
 In project scope, rules, skills and templates go into the repository's `.claude/`, `.codex/`, `.agents/` and
-`AGENTS.md`. Hook scripts and registration stay in the home directories listed above and below.
+`AGENTS.md`. Project hook scripts live in `.vibecoding-devtools/hooks/`; registrations live in the repository's
+`.claude/settings.json`, `.codex/hooks.json` and `.agents/hooks.json`. Commit the runtime and registrations so everyone
+who clones the repository gets the same hooks. Each Codex user must still trust the project and approve them in
+`/hooks`.
 
 - **Codex:** the limit is 32 KiB across all `AGENTS.md` files. Kit rules (about 12 KiB) go in full; ECC's `common`
   (about 18 KiB) would leave only 2 KiB for the project's `AGENTS.md`, so it lives in a separate file and the kit block
@@ -148,22 +185,43 @@ In project scope, rules, skills and templates go into the repository's `.claude/
 
 ## Hooks
 
-Copy scripts and `lib/` to `~/.vibecoding-devtools/hooks/`, running each hook with Node. Register `PreToolUse` handlers
-by merging JSON, identifying the kit's entries by script path and preserving existing user entries:
+Copy scripts and `lib/` to `~/.vibecoding-devtools/hooks/` globally, or `.vibecoding-devtools/hooks/` in the repository
+for project scope, running each hook with Node. Register `PreToolUse` handlers by merging JSON, identifying the kit's
+entries by absolute or portable script reference and preserving existing user entries:
 
-- Claude Code: `~/.claude/settings.json`, `hooks.PreToolUse`, matcher `Bash|PowerShell`, timeout 30 seconds.
-- Codex: `~/.codex/hooks.json`, `hooks.PreToolUse`, matcher `Bash`, with `commandWindows`. Report that the user must
-  approve hooks in `/hooks`, including after hook changes.
-- Antigravity: `~/.gemini/config/hooks.json`, enabled entries `vibecoding-secret-scan` and
+- Claude Code: `~/.claude/settings.json` globally or `.claude/settings.json` in project scope, `hooks.PreToolUse`,
+  matcher `Bash|PowerShell`, timeout 30 seconds. Project commands resolve through `CLAUDE_PROJECT_DIR`, including when
+  Claude Code starts a hook from a repository subfolder.
+- Codex: `~/.codex/hooks.json` globally or `.codex/hooks.json` in project scope, `hooks.PreToolUse`, matcher `Bash`,
+  with `commandWindows`. Each person approves hooks in `/hooks`, including after hook changes, and trusts the project
+  layer.
+  [Codex runs hooks from the session folder](https://learn.chatgpt.com/docs/hooks), which can be a subfolder. Project
+  commands use a Node launcher to find the Git root and start the repository's script, preserving stdin and the exit
+  code. The same command works in POSIX shells and Windows `commandWindows`; no machine paths enter the registration.
+- Antigravity: `~/.gemini/config/hooks.json` globally or `.agents/hooks.json` in project scope, with enabled entries
+  `vibecoding-secret-scan`, `vibecoding-full-suite` and
   `vibecoding-maestri-protocol`, matcher `run_command`, timeout 30 seconds.
 
-`secret-scan` checks commits with gitleaks; `maestri-protocol` checks message headers and delegation footers, skipping
-raw input. Secret scanning is enabled by default; `--hooks` and the panel control kit hooks. The protocol hook is
+Antigravity runs hook commands from the folder containing `hooks.json`, through `cmd /c` on Windows. Its commands use
+unquoted relative paths with forward slashes, such as `node ../../.vibecoding-devtools/hooks/secret-scan.mjs` globally;
+project commands use `node ../.vibecoding-devtools/hooks/secret-scan.mjs` from the repository's `.agents/` folder.
+Registration is
+refused if that relative path contains spaces or crosses Windows drives. A failing Antigravity hook **blocks the tool
+call**, including a Node startup failure caused by a bad path. Quoted absolute paths can reach Node with literal quotes.
+
+`secret-scan` checks commits with gitleaks; `full-suite` checks full test suite commands in repositories with CI;
+`maestri-protocol` checks message headers and delegation footers, skipping raw input. Secret scanning and full-suite
+checks are enabled by default; `--hooks`, `--no-hooks` and the panel question control both. The protocol hook is
 included only with the Maestri pack. Unknown input or uncertain commands never block; missing or failing gitleaks only
 warns. Scans run before command execution and cannot cover later file changes.
 See [hooks](../hooks/README.md) for details.
 
 Record hook files and JSON merges in installation state, with the same hash and conflict safeguards as other actions.
+Update keeps full-suite with the saved hooks choice and adds its registrations to existing installs with hooks enabled.
+Existing project installs migrate on update: unchanged tracked home scripts and registrations are removed, project
+copies are added, and an earlier project Antigravity entry is replaced using its recorded ownership and hash.
+Edited items remain with warnings or conflicts. Dropped project runtime files are removed using the normal update
+safeguards. Global scope keeps its existing locations and commands.
 Uninstall removes only the kit's registrations and unchanged installed files, preserving user content.
 
 ## ECC

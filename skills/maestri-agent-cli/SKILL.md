@@ -66,6 +66,32 @@ Before delegating, check **Built-in capabilities** in the reference: which tools
 browser, subagents) and which commands help with the task (`/plan`, `/review`, `/btw`, `/goal`). Delegate a task to an
 agent that has what it needs.
 
+## Launch agents autonomous
+
+Routine permission prompts stall delegated work. For every agent that needs autonomy, the Maestro follows this conduct:
+
+1. **Recruit:** use the CLI's autonomous flags through `--command` or a preset, unless the user wants a limited agent.
+   A limited agent gets an explicit allowlist containing only the commands its job needs; see its reference below.
+2. **Already running and stopping on prompts:** approve the current in-scope action once, following section 3. When
+   its current task finishes, restart with autonomous flags using `maestri recruit --replace`, then brief it again.
+   Never restart mid-task: its context is lost. Preserve its CLI, model, effort and account. This launch policy covers
+   that task-boundary restart; section 3 still governs prompt decisions.
+3. **Presets missing flags:** propose the updated preset command to the user, preserving its model, effort and account.
+4. **Report:** tell the user which mode each agent runs in, and record it in the agent's ledger row.
+
+| CLI | Recommended command | Limited agent |
+|---|---|---|
+| [Codex](references/codex.md) | `codex --no-daemon --approve-for-me` | Sandbox and command rules |
+| [Antigravity](references/antigravity.md) | `agy --mode auto` | Session command grants |
+| [Claude Code](references/claude-code.md) | `claude --permission-mode auto` | `dontAsk` and tool grants |
+
+Read **Autonomous launch and command rules** in the matching reference. Use isolated settings for limited agents;
+allowlists govern approvals and do not alone enforce a complete commands-only boundary.
+
+After startup, verify the reported mode; do not accept a fallback to manual mode as successful autonomous recruitment.
+Auto review can reject actions. Fully unsandboxed or dangerous bypass modes require the user's explicit request;
+never add them to fix a stalled task. Startup trust, login and later permission prompts still follow section 3.
+
 ## 2. Drive in small steps
 
 - **Look, act, look.** `check` before every input, send one step, `check` again. Menus change under you.

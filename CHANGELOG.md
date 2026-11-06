@@ -5,6 +5,39 @@ Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-06
+
+### Added
+
+- `update` command reuses saved installation choices and the recorded project root, with a fresh plan, explicit flag
+  overrides and the same confirmation and dry-run safeguards as install.
+- `full-suite` hook applies a soft block to full test suites in repositories with CI. Set `VIBECODING_FULL_SUITE=1`
+  in the command for an intentional run; the hook follows the saved hooks choice during update.
+- Maintainer rationale and review dates in [docs/rules-rationale.md](docs/rules-rationale.md), one section per affected
+  rule or skill.
+
+### Changed
+
+- `update` removes tracked kit-owned items that left the kit, including files, managed blocks and hook registrations.
+  Edited items are preserved with a warning, even with `--force`; third-party items are not removed.
+- Recruited agents default to autonomous launch modes; `maestri-agent-cli` documents verified CLI flags, isolated
+  command allowlists, effective-mode checks, task-boundary restarts, preset proposals and explicit authorization for
+  dangerous bypass modes.
+- Project-scope hooks now live in the repository, with portable commands in each CLI's project registration file.
+  Commit the runtime, helpers and registrations to share them with the team; each Codex user still approves hooks in
+  `/hooks`. Update migrates tracked home hooks, preserves edits and removes dropped project runtime files. Global
+  hook installation is unchanged.
+- Moved problem, cost and review metadata out of the testing, model-tiers and context-on-demand rules and the
+  security-surfaces skill, keeping their loaded content focused on instructions.
+- Hook documentation records the owner's dropped test-ratio idea and why it would flag High-risk work.
+
+### Fixed
+
+- Antigravity hook commands use paths relative to the folder containing `hooks.json`, with forward slashes and no
+  quotes, so Node can start the hooks on Windows. Registration rejects paths with spaces or across Windows drives.
+- Claude Code plugin-list parsing recognizes installed plugin blocks and their metadata, section headings and the
+  official empty response, including output preceded by warnings.
+
 ## [0.2.0] - 2026-11-05
 
 ### Added

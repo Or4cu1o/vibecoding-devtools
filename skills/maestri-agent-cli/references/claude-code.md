@@ -37,6 +37,46 @@ maestri ask "Agent" --raw "your prompt"
 maestri ask "Agent" --raw "\n"
 ```
 
+## Autonomous launch and command rules
+
+Verified on Claude Code 2.1.302, Windows (2026-11-06): installed help and isolated startup argument checks.
+
+```bash
+claude --permission-mode auto
+```
+
+Auto mode reviews actions without routine prompts. It is distinct from `acceptEdits`, which still prompts for commands.
+Confirm `auto mode on` after launch; availability can depend on account or managed policy. The isolated startup accepted
+the flag and settings example below but stopped at login, so authenticated action execution was not tested here.
+
+For a limited agent, prepare an isolated settings file and launch:
+
+```bash
+claude --permission-mode dontAsk --settings /path/to/limited.json
+```
+
+```json
+{
+  "permissions": {
+    "allow": ["Bash(npm --version)", "PowerShell(npm --version)"],
+    "deny": ["Bash(git push *)", "PowerShell(git push *)"]
+  }
+}
+```
+
+`dontAsk` denies actions that would otherwise prompt; explicit grants and operations needing no approval still run.
+This is an approval allowlist, not a complete commands-only boundary. Bash and PowerShell need separate rules.
+Denies override asks, which override allows; a broad deny cannot have an allow exception. Narrow command rules do not
+replace OS isolation. `--tools` can additionally limit available tools when the task needs that restriction.
+
+Persistent rules live in `~/.claude/settings.json` (under `CLAUDE_CONFIG_DIR` when set), `.claude/settings.json` or
+`.claude/settings.local.json`; `--settings` adds invocation settings without editing those files. Use an isolated
+`CLAUDE_CONFIG_DIR` for tests. The file schema and precedence are documented in
+[permissions](https://code.claude.com/docs/en/permissions); only flag acceptance was tested with the fake home.
+
+`--dangerously-skip-permissions` and `--permission-mode bypassPermissions` bypass permission checks. Use them only
+at the user's explicit request, never as the default autonomous launch.
+
 ## Permission prompts
 
 Only in `manual` mode (and for commands in `accept edits`). In `auto` mode the agent decides on its own and asks only

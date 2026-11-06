@@ -1,4 +1,5 @@
 import { isUtf8 } from 'node:buffer';
+import path from 'node:path';
 import { hashContent } from './state.mjs';
 
 // Keep source ranges so edits never reserialize unrelated settings or hooks.
@@ -54,8 +55,12 @@ function parse(text) {
 
 const property = (node, key) => node.children.find((child) => child.key === key);
 const normalizePath = (file) => file.replace(/\\/g, '/');
-function ownsHook(hook, scriptPaths) {
+function ownsHook(hook, action) {
   if (!hook || typeof hook !== 'object') return false;
+  const scriptPaths = [...action.scriptPaths, ...(action.scriptReferences ?? [])];
+  if (action.format === 'agy' && action.destination) {
+    scriptPaths.push(...action.scriptPaths.map((file) => path.relative(path.dirname(action.destination), file)));
+  }
   return [hook.command, hook.commandWindows].some((command) => typeof command === 'string'
     && scriptPaths.some((file) => {
       const normalized = normalizePath(command);
@@ -80,7 +85,7 @@ function ownedEntries(root, action, text) {
     for (const entry of root.children) {
       const events = entry.node.value?.PreToolUse;
       if (Array.isArray(events) && events.some((group) => Array.isArray(group?.hooks)
-        && group.hooks.some((hook) => ownsHook(hook, action.scriptPaths)))) {
+        && group.hooks.some((hook) => ownsHook(hook, action)))) {
         owned.push({ parent: root, entry, fingerprint: [entry.key, text.slice(entry.node.start, entry.node.end)] });
       }
     }
@@ -89,7 +94,7 @@ function ownedEntries(root, action, text) {
       const hooks = property(group.node, 'hooks')?.node;
       if (!hooks) continue;
       if (hooks.kind !== 'array') throw new Error('Hook group hooks must be an array');
-      for (const hook of hooks.children) if (ownsHook(hook.node.value, action.scriptPaths)) {
+      for (const hook of hooks.children) if (ownsHook(hook.node.value, action)) {
         owned.push({ parent: hooks, entry: hook, group, fingerprint: [group.node.value.matcher,
           text.slice(hook.node.start, hook.node.end)] });
       }

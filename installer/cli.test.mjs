@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { main, summarizePlan, planInstallation, formatDetection } from './cli.mjs';
 import { execute } from './execute.mjs';
-import { statePath, readState } from './state.mjs';
+import { statePath, readState, saveState, kitVersion } from './state.mjs';
 import { choicesFromFlags, Cancellation } from './panel.mjs';
 import * as thirdPartyApi from './third-party.mjs';
 
@@ -24,6 +24,267 @@ function environment(t) {
     planBuilder: () => [write(path.join(home, 'file'))] };
 }
 const json = (op) => { assert.equal(op.stdout.length, 1); return JSON.parse(op.stdout[0]); };
+
+for (const edited of [false, true]) test(`Update handles dropped files, copied trees, blocks and JSON entries; edited=${edited}`, async (t) => {
+  const op = environment(t);
+  const file = path.join(op.home, 'file');
+  const source = path.join(op.root, 'skill');
+  fs.mkdirSync(source);
+  fs.writeFileSync(path.join(source, 'kept'), 'kept');
+  fs.writeFileSync(path.join(source, 'dropped'), 'dropped');
+  const destination = path.join(op.home, 'skill');
+  const whole = path.join(op.home, 'whole-skill');
+  const agents = path.join(op.home, 'AGENTS.md');
+  const settings = path.join(op.home, 'settings.json');
+  const script = path.join(op.home, 'hook.mjs').replace(/\\/g, '/');
+  fs.mkdirSync(op.home);
+  fs.writeFileSync(agents, 'User rules\n');
+  fs.writeFileSync(settings, '{\n  "user": true\n}\n');
+  const thirdPartyFile = path.join(op.home, 'third-party');
+  let plan = [write(file), { ...write(destination), type: 'copy', source },
+    { ...write(whole), type: 'copy', source },
+    { ...write(agents, 'kit rules'), type: 'block' },
+    { ...write(settings), type: 'json-merge', format: 'agy', scriptPaths: [script],
+      entries: { 'vibecoding-test': { enabled: true, PreToolUse: [{ hooks: [{ command: `node '${script}'` }] }] } } },
+    { ...write(thirdPartyFile), owner: 'ecc' }];
+  const config = { ...op, planBuilder: () => plan };
+  assert.equal(await main(['install', '--yes', '--json'], config), 0);
+  // Files outside the source tree belong to the user and must survive.
+  fs.writeFileSync(path.join(whole, 'user-file'), 'user');
+  if (edited) {
+    for (const target of [file, path.join(destination, 'dropped'), path.join(whole, 'dropped')]) fs.writeFileSync(target, 'edited');
+    fs.writeFileSync(agents, fs.readFileSync(agents, 'utf8').replace('kit rules', 'edited rules'));
+    fs.writeFileSync(settings, fs.readFileSync(settings, 'utf8').replace('"enabled": true', '"enabled": false'));
+  }
+  const snapshot = readState({ home: op.home });
+  const stateBefore = fs.readFileSync(statePath(op.home));
+  // The next kit keeps the skill but drops one child and an entire other skill.
+  fs.unlinkSync(path.join(source, 'dropped'));
+  plan = [{ ...write(destination), type: 'copy', source }];
+  op.stdout.length = 0;
+  assert.equal(await main(['update', '--dry-run', '--json'], config), 0, op.stdout.join('\n'));
+  const preview = json(op);
+  assert.equal(preview.summary.actions.filter((a) => a.situation === 'remove').length, edited ? 1 : 6);
+  assert.equal(preview.warnings.filter((w) => /Modified/.test(w.reason)).length, edited ? 5 : 0);
+  assert.deepEqual(fs.readFileSync(statePath(op.home)), stateBefore);
+  assert.equal(fs.existsSync(file), true);
+  op.stdout.length = 0;
+  assert.equal(await main(['update', '--yes', '--json', '--force'], config), 0, op.stdout.join('\n'));
+  const result = json(op);
+  assert.ok(result.actions.filter((a) => a.situation === 'remove').every((a) => a.status === 'removed'));
+  assert.equal(fs.existsSync(file), edited);
+  assert.equal(fs.existsSync(path.join(destination, 'dropped')), edited);
+  assert.equal(fs.existsSync(path.join(whole, 'dropped')), edited);
+  assert.equal(fs.existsSync(path.join(whole, 'kept')), false);
+  assert.equal(fs.readFileSync(path.join(destination, 'kept'), 'utf8'), 'kept');
+  assert.equal(fs.readFileSync(path.join(whole, 'user-file'), 'utf8'), 'user');
+  assert.equal(fs.readFileSync(agents, 'utf8').includes('vibecoding-devtools:start'), edited);
+  assert.equal(Object.hasOwn(JSON.parse(fs.readFileSync(settings)), 'vibecoding-test'), edited);
+  assert.equal(JSON.parse(fs.readFileSync(settings)).user, true);
+  assert.equal(fs.readFileSync(thirdPartyFile, 'utf8'), 'kit');
+  const remaining = readState({ home: op.home }).items;
+  assert.deepEqual(remaining.filter((i) => i.owner === 'ecc'), snapshot.items.filter((i) => i.owner === 'ecc'));
+  assert.equal(remaining.length, edited ? 7 : 2);
+  if (edited) assert.equal(result.warnings.filter((w) => /Modified/.test(w.reason)).length, 5);
+  op.stdout.length = 0;
+  assert.equal(await main(['update', '--dry-run'], config), 0);
+  assert.equal(op.stdout.some((line) => line.startsWith('[remove]')), false);
+  assert.equal(op.stdout.some((line) => line.startsWith('Warning: Modified')), edited);
+});
+
+test('Update removes dropped template blocks before their containing files and rechecks hashes after confirmation', async (t) => {
+  const op = environment(t);
+  const destination = path.join(op.home, 'AGENTS.md');
+  let plan = [write(destination, 'template'), { ...write(destination, 'rules'), type: 'block' }];
+  const config = { ...op, planBuilder: () => plan };
+  assert.equal(await main(['install', '--yes', '--json'], config), 0);
+  plan = [];
+  op.stdout.length = 0;
+  assert.equal(await main(['update', '--dry-run', '--json'], config), 0);
+  assert.deepEqual(json(op).summary.actions.map((a) => [a.type, a.situation]), [['block', 'remove'], ['write', 'remove']]);
+  op.stdout.length = 0;
+  assert.equal(await main(['update', '--yes', '--json'], config), 0);
+  assert.equal(fs.existsSync(destination), false);
+  assert.deepEqual(readState({ home: op.home }).items, []);
+  execute([write(destination)], { home: op.home });
+  op.stdout.length = 0;
+  assert.equal(await main(['update'], { ...config, isTTY: true, confirm: () => {
+    assert.ok(op.stdout.some((line) => line.startsWith('[remove]')));
+    fs.writeFileSync(destination, 'edited during confirmation');
+    return true;
+  } }), 0);
+  assert.equal(fs.readFileSync(destination, 'utf8'), 'edited during confirmation');
+  assert.ok(op.stdout.some((line) => line.startsWith('Warning: Modified file')));
+  assert.equal(readState({ home: op.home }).items.length, 1);
+});
+
+test('Update requires saved choices even with flags, and legacy states still uninstall', async (t) => {
+  const op = environment(t);
+  const config = { ...op, detect: () => assert.fail('Missing choices must fail before detection') };
+  assert.equal(await main(['update', '--yes', '--json', '--clis=codex'], config), 1);
+  assert.match(json(op).error, /No saved.*install/);
+  assert.equal(fs.existsSync(op.home), false);
+  execute(op.planBuilder(), { home: op.home });
+  op.stdout.length = 0;
+  assert.equal(await main(['update', '--dry-run', '--json'], config), 1);
+  assert.match(json(op).error, /install/);
+  op.stdout.length = 0;
+  assert.equal(await main(['uninstall', '--yes', '--json'], config), 0);
+  assert.equal(fs.existsSync(path.join(op.home, 'file')), false);
+});
+
+test('Update detects again, previews situations without writes, applies the running kit and uninstalls', async (t) => {
+  const op = environment(t);
+  assert.equal(await main(['install', '--yes', '--json', '--maestri', '--no-hooks'], op), 0);
+  const saved = readState({ home: op.home }).choices;
+  const state = readState({ home: op.home });
+  fs.writeFileSync(statePath(op.home), JSON.stringify({ ...state, version: '0.0.1' }));
+  const before = fs.readFileSync(statePath(op.home), 'utf8');
+  let detections = 0;
+  const config = { ...op, detect: (options) => {
+    detections++;
+    assert.equal(options.home, op.home);
+    assert.equal(options.env.HOME, op.home);
+    return { ...detection(), clis: [] };
+  }, planBuilder: (choices) => {
+    assert.deepEqual(choices, saved);
+    return [write(path.join(op.home, 'file'), 'running kit'), write(path.join(op.home, 'new'))];
+  } };
+  op.stdout.length = 0;
+  assert.equal(await main(['update', '--dry-run', '--json'], config), 0);
+  assert.deepEqual(json(op).summary.actions.map((a) => a.situation), ['update', 'new']);
+  assert.equal(fs.readFileSync(statePath(op.home), 'utf8'), before);
+  assert.equal(fs.readFileSync(path.join(op.home, 'file'), 'utf8'), 'kit');
+  op.stdout.length = 0;
+  assert.equal(await main(['update', '--yes', '--json'], config), 0);
+  assert.equal(readState({ home: op.home }).version, kitVersion);
+  assert.equal(fs.readFileSync(path.join(op.home, 'file'), 'utf8'), 'running kit');
+  assert.equal(detections, 2);
+  op.stdout.length = 0;
+  assert.equal(await main(['uninstall', '--yes', '--json'], op), 0);
+  assert.equal(fs.existsSync(path.join(op.home, 'file')), false);
+  assert.equal(fs.existsSync(path.join(op.home, 'new')), false);
+});
+
+test('Update uses the saved project root and all resolved choices; overrides select the current repository', async (t) => {
+  const op = environment(t);
+  const project = path.join(op.root, 'saved-project');
+  const current = path.join(op.root, 'current-project');
+  const saved = { clis: ['claude'], scope: 'project', root: project, maestri: true, hooks: false,
+    ecc: { clis: ['claude'], hooks: true, stacks: ['python'] }, impeccable: { clis: ['codex'], hooks: true } };
+  saveState({ items: [], choices: saved }, { home: op.home });
+  const config = { ...op, cwd: current, detect: ({ cwd }) => ({ ...detection(), project: { inRepository: true, root: cwd, stacks: ['typescript'] } }),
+    prepareThirdParty: () => ({ actions: [], paths: {} }), planBuilder: (choices, d, paths) => {
+      assert.equal(paths.project, choices.root);
+      return op.planBuilder();
+    } };
+  assert.equal(await main(['update', '--dry-run', '--json'], config), 0);
+  assert.deepEqual(json(op).choices, saved);
+  op.stdout.length = 0;
+  assert.equal(await main(['update', '--project', '--cli=agy', '--no-maestri', '--hooks', '--ecc-clis=codex', '--no-ecc-hooks', '--stacks=typescript', '--impeccable-clis=agy', '--no-impeccable-hooks', '--yes', '--json'], config), 0);
+  const expected = { clis: ['agy'], scope: 'project', root: current, maestri: false, hooks: true,
+    ecc: { clis: ['codex'], hooks: false, stacks: ['typescript'] }, impeccable: { clis: ['agy'], hooks: false } };
+  assert.deepEqual(json(op).choices, expected);
+  assert.deepEqual(readState({ home: op.home }).choices, expected);
+  op.stdout.length = 0;
+  assert.equal(await main(['update', '--scope=global', '--ecc=none', '--impeccable=none', '--dry-run', '--json'], { ...config, planBuilder: op.planBuilder }), 0);
+  assert.deepEqual(json(op).choices.ecc, { clis: [], hooks: false, stacks: [] });
+  assert.deepEqual(json(op).choices.impeccable, { clis: [], hooks: false });
+  assert.equal(json(op).choices.root, undefined);
+});
+
+test('Update confirms after summary, cancellation and noninteractive refusal preserve choices', async (t) => {
+  const op = environment(t);
+  await main(['--yes', '--json'], op);
+  const before = fs.readFileSync(statePath(op.home), 'utf8');
+  op.stdout.length = 0;
+  assert.equal(await main(['update', '--json', '--maestri'], op), 1);
+  assert.match(json(op).error, /--yes/);
+  op.stdout.length = 0;
+  const config = { ...op, isTTY: true, confirm: () => {
+    assert.ok(op.stdout.some((line) => line === 'Summary:'));
+    return false;
+  } };
+  assert.equal(await main(['update', '--maestri'], config), 0);
+  assert.equal(fs.readFileSync(statePath(op.home), 'utf8'), before);
+  op.stdout.length = 0;
+  assert.equal(await main(['update', '--maestri'], { ...config, confirm: () => true }), 0);
+  assert.equal(readState({ home: op.home }).choices.maestri, true);
+});
+
+test('Explicit scope and project flags override missing or relative saved roots', async (t) => {
+  const op = environment(t);
+  const current = path.join(op.root, 'current-project');
+  for (const root of [undefined, 'relative-project']) {
+    const saved = { ...choicesFromFlags({}, detection()), scope: 'project', ...(root ? { root } : {}) };
+    saveState({ items: [], choices: saved }, { home: op.home });
+    const before = fs.readFileSync(statePath(op.home));
+    op.stdout.length = 0;
+    assert.equal(await main(['update', '--dry-run', '--json'], {
+      ...op, detect: () => assert.fail('Invalid reused root must fail before detection'),
+    }), 1);
+    assert.match(json(op).error, /Invalid saved project root/);
+    for (const flags of [['--scope=global'], ['--scope=project'], ['--project']]) {
+      op.stdout.length = 0;
+      let detected = false;
+      assert.equal(await main(['update', '--dry-run', '--json', ...flags], {
+        ...op, cwd: current, detect: ({ cwd }) => {
+          detected = true;
+          assert.equal(cwd, current);
+          return { ...detection(), project: { inRepository: true, root: current, stacks: [] } };
+        },
+      }), 0, op.stdout.join('\n'));
+      assert.equal(detected, true);
+      const selected = json(op).choices;
+      assert.equal(selected.scope, flags[0] === '--scope=global' ? 'global' : 'project');
+      assert.equal(selected.root, selected.scope === 'global' ? undefined : current);
+      assert.deepEqual(fs.readFileSync(statePath(op.home)), before);
+    }
+    for (const flag of ['--project', '--scope=project']) {
+      op.stdout.length = 0;
+      assert.equal(await main(['update', flag, '--dry-run', '--json'], { ...op, cwd: current }), 1);
+      assert.match(json(op).error, /Project scope requires a git repository/);
+      assert.deepEqual(fs.readFileSync(statePath(op.home)), before);
+    }
+  }
+});
+
+test('Update preserves modified files as conflicts and permits explicit force', async (t) => {
+  const op = environment(t);
+  await main(['--yes', '--json'], op);
+  fs.writeFileSync(path.join(op.home, 'file'), 'user edit');
+  op.stdout.length = 0;
+  assert.equal(await main(['update', '--yes', '--json'], op), 1);
+  assert.equal(json(op).conflicts.length, 1);
+  assert.equal(fs.readFileSync(path.join(op.home, 'file'), 'utf8'), 'user edit');
+  op.stdout.length = 0;
+  assert.equal(await main(['update', '--yes', '--force', '--json'], op), 0);
+  assert.equal(fs.readFileSync(path.join(op.home, 'file'), 'utf8'), 'kit');
+});
+
+test('Update records the running version even when the real kit files are identical', async (t) => {
+  const op = environment(t);
+  const { planBuilder, ...config } = op;
+  assert.equal(await main(['install', '--yes', '--json'], config), 0);
+  const installed = readState({ home: op.home });
+  fs.writeFileSync(statePath(op.home), JSON.stringify({ ...installed, version: '0.0.1' }));
+  op.stdout.length = 0;
+  assert.equal(await main(['update', '--yes', '--json'], config), 0);
+  assert.equal(json(op).actions.length, 0);
+  assert.ok(json(op).summary.actions.every((a) => a.situation === 'same'));
+  assert.equal(readState({ home: op.home }).version, kitVersion);
+  assert.deepEqual(readState({ home: op.home }).items, installed.items);
+});
+
+test('Update rejects an unavailable saved project without writing or changing target', async (t) => {
+  const op = environment(t);
+  const saved = choicesFromFlags({ project: true }, { ...detection(), project: { inRepository: true, root: path.join(op.root, 'missing'), stacks: [] } });
+  saveState({ items: [], choices: saved }, { home: op.home });
+  const before = fs.readFileSync(statePath(op.home), 'utf8');
+  assert.equal(await main(['update', '--yes', '--json'], op), 1);
+  assert.match(json(op).error, /git repository/);
+  assert.equal(fs.readFileSync(statePath(op.home), 'utf8'), before);
+});
 
 test('Detection returns JSON and an exit code without creating state or opening the panel', async (t) => {
   const op = environment(t);
@@ -46,6 +307,7 @@ test('Default install with --yes uses the contract and records state without a T
   assert.deepEqual(received.d.installed.state.items, []);
   assert.equal(json(op).warnings.length, 1);
   assert.equal(readState({ home: op.home }).items.length, 1);
+  assert.deepEqual(readState({ home: op.home }).choices, received.and);
 });
 
 test('JSON dry-run without a TTY or --yes writes nothing', async (t) => {
@@ -93,9 +355,11 @@ test('Summary distinguishes new, same, update and conflict without adopting iden
 test('Identical files are skipped; conflicts remain until force replaces them', async (t) => {
   const op = environment(t);
   execute(op.planBuilder(), { home: op.home });
-  const before = fs.readFileSync(statePath(op.home), 'utf8');
   assert.equal(await main(['--yes', '--json'], op), 0);
   assert.equal(json(op).actions.length, 0);
+  const before = fs.readFileSync(statePath(op.home), 'utf8');
+  op.stdout.length = 0;
+  assert.equal(await main(['--yes', '--json'], op), 0);
   assert.equal(fs.readFileSync(statePath(op.home), 'utf8'), before);
   op.stdout.length = 0;
   fs.writeFileSync(path.join(op.home, 'file'), 'edit');

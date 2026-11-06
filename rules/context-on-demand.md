@@ -10,9 +10,6 @@ paths:
 
 # Context on demand
 
-**Problem solved:** large rules loaded into every conversation, even when the task does not touch their topic.
-**Cost avoided:** context tokens in every message from every agent.
-
 - The project's `CLAUDE.md` and `AGENTS.md` are a **routing table**: "if the task involves X, read file Y".
   Short, always applicable rules stay there; large rules live in their own files and are read only when the task
   touches their topic.

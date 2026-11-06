@@ -1,0 +1,17 @@
+{
+  "artifactDirectoryPath": "C:/Users/fixture/.gemini/antigravity-cli/brain/captured-session",
+  "conversationId": "captured-session",
+  "lastUserInput": "T-55 capture test. Run exactly git status --short once in C:/teste/hooktest using run_command. Report the result and stop. Do not run other commands or edit files.",
+  "modelName": "gemini-3.8-flash-low",
+  "stepIdx": 2,
+  "toolCall": {
+    "args": {
+      "CommandLine": "git status --short",
+      "WaitMsBeforeAsync": 5000,
+      "toolSummary": "Git status check"
+    },
+    "name": "run_command"
+  },
+  "transcriptPath": "C:/Users/fixture/.gemini/antigravity-cli/brain/captured-session/.system_generated/logs/transcript_full.jsonl",
+  "workspacePaths": ["C:/teste/hooktest"]
+}

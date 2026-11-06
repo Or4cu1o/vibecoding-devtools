@@ -1,9 +1,5 @@
 # Testing
 
-**Problem solved:** huge suites that lock down structure instead of protecting behavior (thousands of tests and many
-lines of tests per production line in one release). **Cost avoided:** CI minutes per PR and tokens spent writing,
-maintaining and rereading low-value tests. **Review this rule:** every six months.
-
 Tests protect behavior, not freeze structure. This rule replaces generic coverage targets and mandatory TDD
 (for example, ECC's 80% and TDD). Repository testing rules override this one.
 

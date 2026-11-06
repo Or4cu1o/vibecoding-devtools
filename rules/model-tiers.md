@@ -1,8 +1,5 @@
 # Models by role and risk
 
-**Problem solved:** using the most expensive model for everything, or the cheapest where money is involved.
-**Cost avoided:** deep-model tokens on mechanical tasks. **Review this rule:** with each new model generation.
-
 Model names change; this rule uses tiers. The concrete map (which model fills each tier today) belongs in the project
 or the orchestrator configuration.
 

@@ -6,7 +6,7 @@ import { checkSecretScan, GITLEAKS_ARGS } from './secret-scan.mjs';
 import { parseInput, runHook } from './lib/io.mjs';
 
 const shapes = [
-  command => ({ tool_name: 'Bash', tool_input: { command }, cwd: '/project' }),
+  command => ({ turn_id: 'test-turn', tool_name: 'Bash', tool_input: { command }, cwd: '/project' }),
   command => ({ tool_name: 'PowerShell', tool_input: { command }, cwd: '/project' }),
   command => ({ toolCall: { name: 'run_command', args: { CommandLine: command, Cwd: '/project' } } }),
 ];
@@ -45,8 +45,9 @@ for (const [index, shape] of shapes.entries()) {
       assert.equal(calls[0].command, 'gitleaks');
       assert.deepEqual(calls[0].args, ['git', '--pre-commit', '--staged', ...flags]);
       assert.equal(calls[0].options.cwd, '/project');
-      assert.equal(exit, index !== 2 && status === 99 ? 2 : 0);
-      if (index === 2) assert.equal(JSON.parse(stdout.text).decision, status === 99 ? 'deny' : undefined);
+      assert.equal(exit, index === 1 && status === 99 ? 2 : 0);
+      if (index === 0 && status === 99) assert.equal(JSON.parse(stdout.text).hookSpecificOutput.permissionDecision, 'deny');
+      if (index === 2) assert.equal(JSON.parse(stdout.text).decision, status === 99 ? 'deny' : 'allow');
       assert.equal((stdout.text + stderr.text).includes('SECRET_VALUE'), false);
       if (status === 1 || status === 2) assert.equal(stderr.text, warning);
     });
@@ -222,7 +223,7 @@ for (const [name, shape] of [['Claude Code', shapes[1]], ['Codex', shapes[0]], [
       assert.equal(calls, 3);
       assert.deepEqual(warningBeforeNextProcess, [warning, warning]);
       assert.equal(stderr.text, warning);
-      assert.equal(stdout.text, name === 'Antigravity' ? '{}\n' : '');
+      assert.equal(stdout.text, name === 'Antigravity' ? '{"decision":"allow"}\n' : '');
     });
   }
 }

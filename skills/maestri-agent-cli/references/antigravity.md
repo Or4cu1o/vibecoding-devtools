@@ -29,6 +29,48 @@ happened.
 Text and `\n` in a single `--raw` call submitted the prompt. Sending the Enter in a separate call, as the skill
 recommends, is the safe default across CLIs.
 
+## Autonomous launch and command rules
+
+Verified on Antigravity CLI 1.5.2, Windows (2026-11-06): installed help and isolated startup argument checks.
+
+```bash
+agy --mode auto
+```
+
+The installed help accepts `auto`, `accept-edits` and `plan`. Auto mode handles workspace edits and safe commands;
+risky or irreversible actions can still prompt. Check the active mode after launch. The fake-home test warned that the
+terminal sandbox was unavailable and fell back to default mode, then required login. Do not treat that as an autonomous
+session; resolve sandbox availability or prepare the limited-agent grants below. No authenticated actions were tested.
+
+For a limited agent, use session settings rather than general auto approval:
+
+```bash
+agy --mode accept-edits --settings /path/to/limited.json
+```
+
+```json
+{
+  "permissions": {
+    "allow": ["command(npm --version)"],
+    "deny": ["command(git push)"],
+    "ask": []
+  }
+}
+```
+
+`--settings` accepts a JSON object or file for this session only, never saved. The example was accepted at startup;
+grant matching was not exercised past login. Persistent CLI grants use `permissions.allow`, `permissions.deny` and
+`permissions.ask` in `~/.gemini/antigravity-cli/settings.json`. Prompt option 3 saves its command grant there;
+option 2 lasts for the conversation. Do not edit `~/.gemini/config/` expecting it to change this CLI allowlist.
+
+Grants use `command(prefix)` or `command(regex:pattern)`. On Windows, a command that cannot be split reliably needs
+an exact match or regex. Deny overrides ask, then allow; `ask: ["command(*)"]` defeats narrower allow grants.
+Unlisted commands in this limited mode can prompt: an empty ask list is not a deny-by-default policy.
+Workspace edits remain allowed; use sandbox controls if the agent needs a stricter boundary.
+See the [CLI permission reference](https://antigravity.google/docs/permissions#cli-fine-grained-permissions).
+
+`--dangerously-skip-permissions` auto-approves every tool request. Use only at the user's explicit request.
+
 ## Permission prompts
 
 File edit or creation:

@@ -4,7 +4,9 @@ How Claude Code, Codex and Antigravity load instructions, rules, skills, hooks a
 the installer converts for the other two based on this table.
 
 Verified on 2026-10-29 with Claude Code 2.1.302, Codex 0.164.0 and Antigravity CLI 1.4.9. **Review this file:** whenever
-a new version of a CLI changes loading, hooks or plugins.
+a new version of a CLI changes loading, hooks or plugins. The Antigravity hook contract was reverified on
+2026-11-06 with CLI 1.5.2. The Codex Windows hook shell was verified with
+0.167.0 on the same date using an isolated `CODEX_HOME`.
 
 ## Binary and installation
 
@@ -78,7 +80,8 @@ Claude Code and are ignored by the others. In projects, Codex and Antigravity re
 | Shell tool | `Bash` | `Bash` | `run_command` |
 | Command received in | `tool_input.command` | `tool_input.command` | `toolCall.args.CommandLine` |
 | Block | exit 2 (reason on stderr) or `permissionDecision: "deny"` | exit 2 or `permissionDecision: "deny"` | stdout `{"decision":"deny","reason":"..."}` |
-| Windows shell | Git Bash (PowerShell without it) | undocumented; use `commandWindows` | `cmd /c` |
+| Allow | exit 0 | exit 0 | stdout `{"decision":"allow"}`, exit 0 |
+| Windows shell | Git Bash (PowerShell without it) | Windows PowerShell (`powershell.exe`), verified on 0.167.0 | `cmd /c` |
 | Execution folder | project folder (`${CLAUDE_PROJECT_DIR}`) | session folder | `hooks.json` folder |
 | Default timeout | 600 s | 600 s | 30 s |
 | User approval | no | **yes, in `/hooks`; every change requires approval again** | no |
@@ -86,7 +89,40 @@ Claude Code and are ignored by the others. In projects, Codex and Antigravity re
 - All three block a shell command before execution. A single Node script serves all three if it recognizes the input
   format and responds in each one's format.
 - In Codex, a hook that hangs, times out or returns invalid output **does not block**; `ask` is unsupported.
+- The kit identifies Codex `PreToolUse` input by its documented `turn_id` extension and denies with stdout JSON:
+  `{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"..."}}`,
+  exiting 0. Allow returns exit 0 with no output. This applies to project and global hooks. Claude Code retains exit 2
+  and a reason on stderr; its `Bash` input alone does not identify Codex.
+- Codex 0.167.0 on Windows launches hooks through PowerShell: a diagnostic `SessionStart` hook in an isolated
+  `CODEX_HOME` observed `powershell.exe` as its parent. `powershell.exe -NoProfile -Command` maps a native exit 2
+  to exit 1, so exit-code-only denial becomes a hook failure that permits the tool call. Regression tests run the
+  registered project and global `commandWindows` strings through that shell and assert JSON denial with exit 0.
+  The hook command strings remain unchanged; the runtime response fixes the failure.
+- In Antigravity, a failing hook **blocks the tool call**, including a Node startup failure. On Windows, `cmd /c`
+  runs hooks from the `hooks.json` folder. Use unquoted relative script paths with forward slashes and no spaces;
+  quoted absolute paths can reach Node with literal quotes and prevent the script from loading.
 - Antigravity has no `UserPromptSubmit`, `SessionEnd` or `PreCompact`.
+
+Antigravity 1.5.2 `PreToolUse` requires an explicit `decision`: return `allow` to proceed, or `deny` with a nonempty
+`reason` to block. An empty object is a `PostToolUse` response; using it for `PreToolUse` denied even harmless commands
+with an empty reason in the live session. Both allow and deny responses use stdout JSON and exit 0.
+
+The captured 1.5.2 payload uses camelCase system metadata and `toolCall.name` / `toolCall.args.CommandLine`. It omitted
+`Cwd` for the default workspace and provided a single absolute path in `workspacePaths`. The hooks prefer explicit
+`Cwd`, otherwise use that sole absolute workspace. Missing or multiple workspace paths leave the directory unknown;
+the process working folder is never used as a substitute. Unknown Antigravity tools and malformed command arguments
+explicitly allow without checking a command. The existing 1.4.9 payload with explicit `Cwd` remains supported.
+
+Project-scope kit hooks live in the repository's `.vibecoding-devtools/hooks/`, including shared helpers. Their
+registrations use the project files above and contain no machine-specific paths. Commit these files so the whole team
+gets the hooks on clone; each Codex user must still trust the project and approve its hooks in `/hooks`.
+
+- Claude Code project commands use `CLAUDE_PROJECT_DIR` to locate the repository runtime.
+- [Codex hooks run in the session working folder](https://learn.chatgpt.com/docs/hooks), even when it is below the Git
+  root. The installer uses a portable Node launcher that resolves the Git root, passes stdin to the hook and returns
+  its exit code. `commandWindows` uses the same launcher. Project `.codex/` layers must be trusted to load hooks.
+- Antigravity project commands use `node ../.vibecoding-devtools/hooks/<name>.mjs` from `.agents/`, with forward slashes
+  and no quotes. Global hooks keep their existing home locations.
 
 ## Custom agents
 
@@ -107,8 +143,7 @@ installer.
 
 ## Unconfirmed points
 
-- Shell Codex uses for hook `command` on Windows.
-- Antigravity editing tool names (only `run_command` is documented) and the effect of exit codes in its hooks.
+- Antigravity editing tool names (only `run_command` is documented).
 - Antigravity CLI global folder: local docs and this machine use `~/.gemini/config/`; the website mentions
   `~/.gemini/antigravity-cli/`.
 

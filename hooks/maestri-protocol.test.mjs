@@ -31,7 +31,7 @@ test('accepts the delegation footer, including CRLF and trailing newline', () =>
 
 for (const [name, shape] of [
   ['Claude Code', command => ({ tool_name: 'PowerShell', tool_input: { command } })],
-  ['Codex', command => ({ tool_name: 'Bash', tool_input: { command } })],
+  ['Codex', command => ({ turn_id: 'test-turn', tool_name: 'Bash', tool_input: { command } })],
   ['Antigravity', command => ({ toolCall: { name: 'run_command', args: { CommandLine: command } } })],
 ]) {
   for (const valid of [false, true]) {
@@ -42,8 +42,9 @@ for (const [name, shape] of [
         stdin: Readable.from([JSON.stringify(shape(`maestri ask Agent ${quote(valid ? report : 'SECRET_MESSAGE')}`))]),
         stdout: { write(value) { stdout += value; } }, stderr: { write(value) { stderr += value; } },
       });
-      assert.equal(exit, valid || name === 'Antigravity' ? 0 : 2);
-      if (name === 'Antigravity') assert.equal(JSON.parse(stdout).decision, valid ? undefined : 'deny');
+      assert.equal(exit, !valid && name === 'Claude Code' ? 2 : 0);
+      if (name === 'Antigravity') assert.equal(JSON.parse(stdout).decision, valid ? 'allow' : 'deny');
+      if (name === 'Codex' && !valid) assert.equal(JSON.parse(stdout).hookSpecificOutput.permissionDecision, 'deny');
       assert.equal((stdout + stderr).includes('SECRET_MESSAGE'), false);
     });
   }

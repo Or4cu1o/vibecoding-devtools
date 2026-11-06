@@ -198,7 +198,7 @@ function normalizePlugin(cli, item) {
   if (typeof item.installed === "boolean") installed = item.installed;
   else if (/^installed\b/i.test(status ?? "")) installed = true;
   else if (/^(?:not[\s_-]+installed|uninstalled)\b/i.test(status ?? "")) installed = false;
-  else if (cli !== "codex" && /^(?:enabled|disabled)\b/i.test(status ?? "")) installed = true;
+  else if (cli !== "codex" && /\b(?:loaded|enabled|disabled|installed)\b/i.test(status ?? "")) installed = true;
   else if (cli !== "codex" && typeof installedSection === "boolean") installed = installedSection;
   else if (cli !== "codex" && status === null && typeof item.enabled === "boolean") installed = true;
   return { ...fields, name: name.trim(), version: item.version ?? null, status, installed };
@@ -228,7 +228,6 @@ export function parsePlugins(cli, output) {
   const items = [];
   let installedInSection;
   let current;
-  let recognized = false;
   let awaitingMarketplaceTable = false;
   for (const line of text.split(/\r?\n/)) {
     const clean = line.trim();
@@ -240,22 +239,30 @@ export function parsePlugins(cli, output) {
       continue;
     }
     if (/^PLUGIN\s+STATUS\s+VERSION\s+SOURCE$/i.test(clean)) {
-      recognized = true;
       awaitingMarketplaceTable = false;
       continue;
     }
-    if (awaitingMarketplaceTable) continue;
-    if (/^installed plugins\s*:/i.test(clean)) { installedInSection = true; recognized = true; continue; }
-    if (/^(?:available|catalog) plugins\s*:/i.test(clean)) { installedInSection = false; recognized = true; continue; }
-    const field = cli === "claude" && clean.match(/^(Version|Scope|Status):\s*(.*)$/i);
-    if (field && current) {
-      current[{ version: "version", scope: "scope", status: "status" }[field[1].toLowerCase()]] = field[2];
+    if (awaitingMarketplaceTable) {
+      if ((path.win32.isAbsolute(clean) || path.posix.isAbsolute(clean)) && /[/\\]marketplace\.json$/i.test(clean)) continue;
+      throw new Error("Unrecognized plugin response format");
+    }
+    if (/^installed plugins\s*:\s*$/i.test(clean)) { installedInSection = true; current = undefined; continue; }
+    if (/^(?:available|catalog) plugins\s*:\s*$/i.test(clean)) { installedInSection = false; current = undefined; continue; }
+    const field = cli === "claude" && clean.match(/^(Version|Scope|Status|Path):\s*(.*)$/i);
+    if (field) {
+      if (!current || !field[2]) throw new Error("Incomplete plugin response");
+      if (field[1].toLowerCase() !== "path") current[field[1].toLowerCase()] = field[2];
+      continue;
+    }
+    if (cli === "claude" && /:$/.test(clean)) {
+      // Synced and future section headings are metadata, not plugin entries.
+      installedInSection = undefined;
+      current = undefined;
       continue;
     }
     // Claude lists installed plugins in blocks with version, scope and status below each name.
-    const claudeName = cli === "claude" && clean.match(/^(?:[❯>•*-]\s*)?([a-z\d._/-]+@[a-z\d._/-]+)$/i);
+    const claudeName = cli === "claude" && clean.match(/^(?:[❯→➜›>•*-]\s*)?([a-z\d._/-]+@[a-z\d._/-]+)$/i);
     if (claudeName) {
-      recognized = true;
       current = { name: claudeName[1] };
       if (installedInSection !== undefined) current.installedSection = installedInSection;
       items.push(current);
@@ -265,18 +272,20 @@ export function parsePlugins(cli, output) {
     const cells = clean.includes("|") ? clean.split("|").map((c) => c.trim()).filter(Boolean) : null;
     const m = cells ? null : clean.match(/^([a-z\d_.@/-]+)\s+(.+)$/i);
     const name = cells?.[0] ?? m?.[1];
-    if (!name) continue;
-    if (/^(?:name|plugin|plugins)$/i.test(name)) { recognized = true; continue; }
+    if (!name) throw new Error("Unrecognized plugin response format");
+    if (/^(?:name|plugin|plugins)$/i.test(name) && /\bstatus\b/i.test(clean)) continue;
     const rest = cells ? cells.slice(1).join(" ") : m[2];
     const status = cells?.slice(1).find((c) => /^(?:not\s+)?installed\b/i.test(c))
       ?? rest.match(/^(?:\d+\.\d+\.\d+\s+)?((?:not\s+)?installed\b(?:,\s*(?:enabled|disabled))?)/i)?.[1]
       ?? (cli !== "codex" ? rest.match(/\b(enabled|disabled)\b/i)?.[1] : null);
-    current = { name, status: status ?? null, version: extractVersion(rest), original: line };
-    recognized = true;
+    const version = extractVersion(rest);
+    if (!/^[a-z\d_.@/-]+$/i.test(name) || (!status && !version)) throw new Error("Unrecognized plugin response format");
+    current = { name, status: status ?? null, version, original: line };
     if (cli === "claude" && installedInSection !== undefined) current.installedSection = installedInSection;
     items.push(current);
   }
-  if (!recognized) throw new Error("Unrecognized plugin response format");
+  // Headers and table scaffolding alone never establish absence.
+  if (!items.length || awaitingMarketplaceTable) throw new Error("Unrecognized plugin response format");
   return items.map((item) => normalizePlugin(cli, item));
 }
 
