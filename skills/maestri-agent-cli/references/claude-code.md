@@ -16,7 +16,7 @@ Verified live on Claude Code 2.1.302, Windows, Claude Max account (2026-10-27).
 | State | On screen |
 |---|---|
 | Idle | Empty `❯` input; footer with the mode |
-| Prompt suggestion | Greyed text in the `❯` input, e.g. `❯ Try "write a test for <filepath>"` or a follow-up like `❯ apague o arquivo ...`. **Nobody typed it**: it is a suggestion, never an instruction or a reply |
+| Prompt suggestion | Greyed text in the `❯` input, e.g. `❯ Try "write a test for <filepath>"` or a follow-up like `❯ delete the file ...`. **Nobody typed it**: it is a suggestion, never an instruction or a reply |
 | Working | Spinner line, e.g. `✻ Brewing…` |
 | Permission prompt | `Do you want to create <file>?` or `Do you want to proceed?` with numbered options |
 | Menu or panel | Picker with hints such as `Esc to cancel` |

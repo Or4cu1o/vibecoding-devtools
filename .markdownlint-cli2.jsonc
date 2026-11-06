@@ -1,18 +1,18 @@
-// Regras de Markdown do kit, lidas pelo CI e pelo comando local (markdownlint-cli2 0.24.0, a versão da action).
+// Kit Markdown rules, read by CI and the local command (markdownlint-cli2 0.24.0, the action's version).
 {
   "config": {
     "default": true,
-    // 120 colunas no texto; tabelas, blocos de código e títulos ficam livres.
+    // 120 columns in prose; tables, code blocks and headings are exempt.
     "MD013": { "line_length": 120, "tables": false, "code_blocks": false, "headings": false, "stern": true },
-    // Blocos de código sempre cercados (```), com a linguagem.
+    // Code blocks always fenced (```), with a language.
     "MD046": { "style": "fenced" },
-    // O CHANGELOG repete "Adicionado" e "Alterado" em cada versão.
+    // CHANGELOG repeats "Added" and "Changed" for each version.
     "MD024": { "siblings_only": true },
-    // Os modelos usam <marcadores> para o usuário preencher.
+    // Templates use <placeholders> for users to fill in.
     "MD033": false,
-    // CLAUDE.md de projeto começa com @AGENTS.md, não com título.
+    // Project CLAUDE.md starts with @AGENTS.md, not a heading.
     "MD041": false,
-    // Tabelas compactas (|---|), como no resto do kit.
+    // Compact tables (|---|), as in the rest of the kit.
     "MD060": false
   },
   "ignores": ["node_modules/**"]

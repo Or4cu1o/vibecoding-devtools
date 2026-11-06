@@ -1,19 +1,19 @@
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 #
-# Modelo de .coderabbit.yaml (copie para a raiz do repositório e ajuste os TODO).
-# Referência: https://docs.coderabbit.ai/reference/configuration
-# Problema que resolve: revisão barulhenta (poemas, diagramas, sugestões de teste para subir cobertura) e cobrança de
-# regras genéricas que o projeto substituiu. Custo que evita: ciclos de PR gastos com comentários de pouco valor.
+# .coderabbit.yaml template (copy to the repository root and adjust the TODOs).
+# Reference: https://docs.coderabbit.ai/reference/configuration
+# Problem solved: noisy reviews (poems, diagrams, test suggestions to raise coverage) and enforcing generic rules
+# the project has replaced. Cost avoided: PR cycles spent on low-value comments.
 
-language: pt-BR
+language: en-US
 tone_instructions: >-
-  Revisor técnico objetivo, em pt-BR. Foco em bugs, segurança e regressões. Cite arquivo:linha, agrupe repetições
-  em um só comentário e não elogie.
+  Objective technical reviewer, in English. Focus on bugs, security and regressions. Cite file:line, group repetitions
+  into a single comment and do not praise.
 inheritance: false
 
 reviews:
   profile: chill
-  # O bloqueio de merge é da proteção de branch; os checks abaixo só sinalizam.
+  # Branch protection blocks merges; the checks below only flag issues.
   request_changes_workflow: false
   high_level_summary: true
   review_status: true
@@ -38,20 +38,20 @@ reviews:
       - "[skip review]"
 
   path_filters:
-    # TODO: lockfiles, assets binários, vendor e arquivos gerados do projeto.
+    # TODO: project lockfiles, binary assets, vendor and generated files.
     - "!**/*.min.js"
     - "!**/*.min.css"
 
   path_instructions:
     - path: "**/*"
       instructions: |
-        - `AGENTS.md`, `CLAUDE.md` e as regras do projeto prevalecem sobre regras genéricas (ECC). Não peça teste só
-          para subir cobertura nem TDD fora de correção de bug e regra pura.
-        - Siga o nível de risco do item: em mudança de texto, estilo, docs ou configuração, aponte só bug real.
-        - Nunca descreva em comentário público um detalhe explorável de vulnerabilidade; aponte o arquivo e peça o
-          relato privado.
-    # TODO: instruções por área (ex.: pastas de dinheiro, autenticação, dados pessoais) apontando a skill
-    # revisao-de-seguranca e o mapa de risco do projeto.
+        - `AGENTS.md`, `CLAUDE.md` and project rules override generic rules (ECC). Do not request tests just to raise
+          coverage or TDD outside bug fixes and pure rules.
+        - Follow the item's risk level: for text, styling, docs or configuration changes, flag only actual bugs.
+        - Never describe an exploitable vulnerability detail in a public comment; point to the file and request a
+          private report.
+    # TODO: area-specific instructions (e.g. money, authentication, personal data folders) referring to the
+    # security-surfaces skill and the project's risk map.
 
   pre_merge_checks:
     docstrings:
@@ -59,23 +59,26 @@ reviews:
     title:
       mode: warning
       requirements: >-
-        Conventional Commits: tipo (feat, fix, refactor, docs, test, chore, perf, ci), escopo opcional e descrição curta.
+        Conventional Commits: type (feat, fix, refactor, docs, test, chore, perf, ci), optional scope and short
+        description.
     description:
       mode: warning
     issue_assessment:
       mode: off
     custom_checks:
-      - name: "CHANGELOG atualizado"
+      - name: "CHANGELOG updated"
         mode: warning
         instructions: |
-          Se o PR altera código de produção, Dockerfile ou dependências (não só testes ou documentação), o diff precisa
-          incluir uma entrada em `[Unreleased]` do CHANGELOG. Passa se houver a entrada ou se o PR não toca esses caminhos.
-      - name: "Sem segredos nem detalhe explorável"
+          If the PR changes production code, Dockerfiles or dependencies (not only tests or documentation), the diff
+          must include an entry under `[Unreleased]` in CHANGELOG. Pass if the entry exists or the PR does not touch
+          these paths.
+      - name: "No secrets or exploitable details"
         mode: error
         instructions: |
-          Falha se o diff adiciona a um arquivo público um segredo real (token, chave de API, senha, URL de webhook,
-          string de conexão com credenciais) ou o passo a passo explorável de uma vulnerabilidade ainda não corrigida.
-          Valores sintéticos claramente falsos em testes e variáveis vazias em `.env.example` passam.
+          Fail if the diff adds a real secret (token, API key, password, webhook URL, connection string with
+          credentials)
+          or exploitable steps for an unfixed vulnerability to a public file.
+          Clearly fake synthetic values in tests and empty variables in `.env.example` pass.
 
   finishing_touches:
     docstrings:
@@ -84,7 +87,7 @@ reviews:
       enabled: false
 
   tools:
-    # TODO: ligue os linters da stack (ruff, eslint, biome, golangci-lint) e desligue os redundantes.
+    # TODO: enable stack linters (ruff, eslint, biome, golangci-lint) and disable redundant ones.
     actionlint:
       enabled: true
     hadolint:
@@ -115,7 +118,7 @@ knowledge_base:
     filePatterns:
       - "AGENTS.md"
       - "CLAUDE.md"
-      # TODO: as regras do projeto, por exemplo ".claude/rules/<projeto>/*.md".
+      # TODO: project rules, for example ".claude/rules/<project>/*.md".
   learnings:
     scope: local
   issues:

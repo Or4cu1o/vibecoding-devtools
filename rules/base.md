@@ -1,26 +1,25 @@
 # Base
 
-Valem em todo projeto e em todo nível de risco. Em conflito com regras de processo, estas vencem.
+Apply to every project and risk level. These take precedence over process rules in a conflict.
 
-- **Segredos:** nunca escrever, imprimir ou versionar segredos, tokens ou `.env`; use `.env.example`. Antes de todo
-  commit, varra o que vai entrar: `gitleaks git --pre-commit --staged --redact` (sem git: `gitleaks dir <arquivos>`).
-- **Plataformas que mudam:** consulte a documentação oficial (clonada ou referenciada no projeto) antes de assumir
-  comportamento de memória.
-- **Git:** branch `tipo/nome-curto` a partir da main, Conventional Commits, merge commit. Nunca push direto na main,
-  nunca force-push, nunca reescrever histórico compartilhado. Push, PR e merge só com o OK do dono.
-- **Ações destrutivas ou externas** (apagar dados ou repositórios, deploy, publicar pacote, tag de release, mudar
-  segredos de CI ou configurações do GitHub): só com OK explícito do dono. Depois do OK, quem tem a função executa; não
-  devolve o comando para o dono rodar.
-- **Dependências:** o gerenciador do lockfile do repositório (pnpm por padrão; Python via uv, nunca pip global). Confira
-  licença e manutenção antes de adicionar um pacote.
-- **Design de interface:** as decisões visuais ficam com o impeccable; as regras de engenharia web cuidam da qualidade,
-  não da direção visual.
-- **Verifique antes de afirmar:** rode lint, typecheck e os testes do que mexeu, e relate falhas com honestidade. Nunca
-  afirme uma verificação que não viu.
-- **Delegação:** faça você mesmo o que é rápido ou o que o dono pediu a você. Delegue trabalho independente que rende em
-  paralelo, com um pedido curto que diga o nível de risco.
-- **Pare e sinalize:** se a tarefa parece exigir violar uma regra de arquitetura, economia, segurança ou fronteira entre
-  apps, pare e avise o dono antes de contornar.
-- **Commits:** um commit por unidade de trabalho completa ou ao trocar de tarefa, não a cada edição.
-- **README do app:** mudou a estrutura, o papel ou o fluxo de um app, atualize o `README.md` daquele app no mesmo
-  commit.
+- **Secrets:** never write, print or commit secrets, tokens or `.env`; use `.env.example`. Before every commit, scan
+  what will be included: `gitleaks git --pre-commit --staged --redact` (without git: `gitleaks dir <files>`).
+- **Changing platforms:** consult official documentation (cloned or referenced in the project) before assuming
+  behavior from memory.
+- **Git:** branch `type/short-name` from main, Conventional Commits, merge commit. Never push directly to main,
+  force-push or rewrite shared history. Push, PR and merge require the owner's OK.
+- **Destructive or external actions** (delete data or repositories, deploy, publish packages, release tags, change
+  CI secrets or GitHub settings): require the owner's explicit OK. Once approved, whoever has the role executes;
+  do not hand the command back to the owner to run.
+- **Dependencies:** use the repository lockfile's package manager (pnpm by default; Python via uv, never global pip).
+  Check license and maintenance before adding a package.
+- **Interface design:** visual decisions belong to impeccable; web engineering rules handle quality, not visual
+  direction.
+- **Verify before claiming:** run lint, typecheck and tests for what you changed, and report failures honestly. Never
+  claim a check you have not observed.
+- **Delegation:** do quick work yourself, as well as work the owner assigned to you. Delegate independent work that
+  benefits from parallel execution, with a short request stating the risk level.
+- **Stop and flag:** if a task seems to require violating an architecture, economy, security or app boundary rule,
+  stop and tell the owner before working around it.
+- **Commits:** one commit per complete unit of work or when switching tasks, not after every edit.
+- **App README:** if an app's structure, role or flow changes, update that app's `README.md` in the same commit.

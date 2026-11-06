@@ -1,68 +1,68 @@
 <!--
-Modelo de AGENTS.md do vibecoding-devtools. Copie para a raiz do projeto, preencha os <...> e apague o que não se
-aplica, inclusive este comentário. Claude Code, Codex e Antigravity leem este arquivo; o CLAUDE.md do projeto tem só
+AGENTS.md template from vibecoding-devtools. Copy to the project root, fill in <...> and delete what does not apply,
+including this comment. Claude Code, Codex and Antigravity read this file; the project's CLAUDE.md contains only
 `@AGENTS.md`.
 
-Limites: o Codex lê no máximo 32 KiB somando todos os AGENTS.md, e o Claude Code recomenda menos de 200 linhas. Este
-arquivo é uma tabela de roteamento: o que vale sempre fica aqui, em poucas linhas; o resto fica em arquivo próprio e
-entra na tabela "Antes de começar".
+Limits: Codex reads at most 32 KiB across all AGENTS.md files, and Claude Code recommends fewer than 200 lines. This
+file is a routing table: always applicable content stays here, in a few lines; the rest lives in separate files and
+goes into the "Before starting" table.
 -->
 
-# <Nome do projeto>
+# <Project name>
 
-<Uma ou duas frases: o que o sistema faz e para quem.>
+<One or two sentences: what the system does and for whom.>
 
-## Mapa
+## Map
 
-| App ou pasta | Papel | Stack | README |
+| App or folder | Role | Stack | README |
 |---|---|---|---|
-| `<apps/api>` | <API pública> | <Python 3.13, FastAPI> | `<apps/api/README.md>` |
-| `<apps/web>` | <painel web> | <TypeScript, Next.js> | `<apps/web/README.md>` |
+| `<apps/api>` | <public API> | <Python 3.13, FastAPI> | `<apps/api/README.md>` |
+| `<apps/web>` | <web dashboard> | <TypeScript, Next.js> | `<apps/web/README.md>` |
 
-- **Fronteiras:** <quem pode chamar quem; o que um app nunca importa de outro>.
-- **Integrações externas:** <serviço → pasta do cliente → documentação oficial em `docs/vendor/<serviço>`>.
+- **Boundaries:** <who can call whom; what one app never imports from another>.
+- **External integrations:** <service → client folder → official documentation in `docs/vendor/<service>`>.
 
-## Comandos
+## Commands
 
-| Para | Comando |
+| For | Command |
 |---|---|
-| Instalar dependências | `<pnpm install>` |
-| Rodar localmente | `<pnpm dev>` |
-| Lint e typecheck | `<pnpm lint && pnpm typecheck>` |
-| Testes de um caminho | `<pnpm test -- caminho>` |
+| Install dependencies | `<pnpm install>` |
+| Run locally | `<pnpm dev>` |
+| Lint and typecheck | `<pnpm lint && pnpm typecheck>` |
+| Tests for a path | `<pnpm test -- path>` |
 | Build | `<pnpm build>` |
 
-Localmente, rode só os testes do que mexeu; o CI roda a suíte completa.
+Locally, run only tests for what you changed; CI runs the full suite.
 
-## Mapa de risco
+## Risk map
 
-Vence a lista genérica da regra `processo-por-risco`. O arquivo mais arriscado da mudança decide o nível.
+Overrides the generic list in the `risk-process` rule. The riskiest file in the change determines the level.
 
-| Nível | Caminhos |
+| Level | Paths |
 |---|---|
-| **Alto** | `<apps/api/payments/**>`, `<apps/api/auth/**>`, `<migrations/**>`, `<.github/workflows/**>`, `<infra/**>` |
-| **Médio** | `<apps/*/src/**>` fora dos caminhos Alto |
-| **Baixo** | `<docs/**>`, `<**/*.md>`, `<public/**>` |
+| **High** | `<apps/api/payments/**>`, `<apps/api/auth/**>`, `<migrations/**>`, `<.github/workflows/**>`, `<infra/**>` |
+| **Medium** | `<apps/*/src/**>` outside High-risk paths |
+| **Low** | `<docs/**>`, `<**/*.md>`, `<public/**>` |
 
-Áreas críticas com piso maior de cobertura: <liste ou escreva "nenhuma">.
+Critical areas with a higher coverage floor: <list or write "none">.
 
-## Antes de começar
+## Before starting
 
-| Se a tarefa envolve | Leia ou use |
+| If the task involves | Read or use |
 |---|---|
-| Qualquer tarefa de código | skill `triagem-de-risco` |
-| Nível Alto | skill `revisao-de-seguranca`, só as superfícies tocadas |
-| <Integração com o serviço X> | `<docs/vendor/x/README.md>` |
-| <Interface visual> | <skill de design do projeto> |
+| Any coding task | the `risk-triage` skill |
+| High risk | the `security-surfaces` skill, only touched surfaces |
+| <Integration with service X> | `<docs/vendor/x/README.md>` |
+| <Visual interface> | <project design skill> |
 
-## Regras do projeto
+## Project rules
 
-Valem sempre e vencem as regras genéricas do kit e de terceiros (ECC). Só o que é próprio deste projeto:
+Always apply and override generic kit and third-party (ECC) rules. Only what is specific to this project:
 
-- <Exemplo: todo valor em centavos, tipo `Money`; nunca `float`.>
-- <Exemplo: textos de interface em pt-BR, código e commits em inglês.>
+- <Example: all amounts in cents, type `Money`; never `float`.>
+- <Example: interface text in pt-BR, code and commits in English.>
 
-## Pronto
+## Done
 
-- <Critério do projeto além do CI verde, por exemplo: migração testada num banco com dados.>
-- Mudou a estrutura, o papel ou o fluxo de um app: atualize o README dele no mesmo commit.
+- <Project criterion beyond green CI, for example: migration tested on a database with data.>
+- If an app's structure, role or flow changes, update its README in the same commit.

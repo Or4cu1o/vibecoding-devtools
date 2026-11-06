@@ -1,0 +1,198 @@
+# Installer
+
+vibecoding-devtools installer specification. All five stages are implemented and tested on Linux and Windows.
+
+| Stage | Status |
+|---|---|
+| 1. Node, git, gitleaks, CLIs, PATH and stack detection (`node installer/cli.mjs detect`) | done |
+| 2. Panel and flags (`install`, `--dry-run`, `--yes`) | done |
+| 3. Kit installation, with conversions | done |
+| 4. ECC and Impeccable | done |
+| 5. State and `uninstall` | done |
+
+One command prepares the AI development environment end to end: checks what exists on the machine, opens a panel to
+choose what to install, and installs the kit and Impeccable on selected CLIs, plus ECC on Claude Code and Codex. The kit
+is distributed only through the installer, never as a plugin (see `docs/cli-compatibility.md`, Plugins section).
+
+## Decisions
+
+- **Language:** Node ≥ 22, for the installer and hooks. ECC and Impeccable already install through `npx`, so Node is a
+  prerequisite anyway, and on Windows `python3` may just be the Microsoft Store shortcut.
+- **Panel:** `@clack/prompts`. Dependencies are pinned in `npm-shrinkwrap.json`, which `npx` respects.
+- **Supported CLIs:** Claude Code, Codex and Antigravity. Claude Code is the source; the others receive conversions.
+- **Scope:** global by default (applies to every project); the user can choose project scope in the panel.
+- **Third parties:** ECC and Impeccable come from official sources, at versions pinned in `installer/third-party.json`.
+  The kit does not store copies of their code.
+- **ECC rules:** our installer copies them for Claude Code and Codex from the pinned ECC version. The ECC installer
+  installs the rest on Claude Code (agents, commands, skills and optional hooks), without the rules module; Codex uses
+  the plugin. ECC is not installed on Antigravity.
+- **Impeccable telemetry:** disabled by default (`DO_NOT_TRACK=1` and `npx impeccable@4.8.0 telemetry off`).
+- **Third-party hooks:** ECC and Impeccable hooks are disabled by default; the panel asks.
+- **Kit hooks:** secret scanning is on by default; the panel and `--hooks` control installation. The protocol hook
+  also requires the Maestri pack. Codex users approve hooks in `/hooks`.
+- **Maestri:** only by panel selection or the `--maestri` flag.
+- **Maintenance:** `uninstall` in 0.1.0; `update` later. Both use the state recorded at installation.
+
+## Entry point
+
+`npx github:Or4cu1o/vibecoding-devtools#v<version>`: npm downloads the repository at the tag and runs the installer,
+without publishing a package. The tag pins the version, as the `secrets-and-infra` surface of the `security-surfaces`
+skill requires for downloads. No `curl | bash`: the installer only **displays** the official installation command for
+an absent CLI, never executes it.
+
+```bash
+npx github:Or4cu1o/vibecoding-devtools#v0.1.0             # panel
+npx github:Or4cu1o/vibecoding-devtools#v0.1.0 uninstall   # removes only what the kit installed
+```
+
+## Flow
+
+1. **Prerequisites:** Node ≥ 22 and git; if missing, explains how to install and stops. gitleaks is recommended (rules
+   require scanning before commits): if missing, warns and continues.
+2. **CLIs:** looks for `claude`, `codex` and `agy`; shows version and folder. Installed but outside `PATH`: says which
+   folder to add. Installed but not responding to `--version`: reports an error. Missing: offers the official install
+   command (table in `docs/cli-compatibility.md`).
+3. **Project:** when running inside a repository, detects the stack from files (`package.json`, `tsconfig.json`,
+   `pyproject.toml`, `go.mod`, `Cargo.toml`, `pom.xml`, `composer.json`, `Gemfile`...) to suggest ECC rules.
+4. **Panel:**
+   - Target CLIs (detected ones are selected).
+   - Scope: global or project.
+   - Kit: rules, skills and hooks; secret scanning by default, protocol checks only with the Maestri pack.
+   - ECC: which CLIs (Claude Code or Codex); ECC hooks (disabled by default); project stack rule packages.
+   - Impeccable: which CLIs.
+   - Maestri: install the `maestri-messaging` and `maestri-usage` rules and the `maestri-protocol`, `maestri-agent-cli`
+     and `maestri-budget` skills?
+5. **Summary:** lists each file and command to run (dry-run) and asks for confirmation.
+6. **Installation:** third parties first, then the kit. Stops on any error, never leaving an incomplete install
+   silently.
+7. **State:** records what was installed and where (`~/.vibecoding-devtools/state.json`), to uninstall and update only
+   what belongs to the kit.
+8. **Report:** what was installed on each CLI and what remains for the user (for example, approving hooks in Codex's
+   `/hooks`).
+
+Without the panel: the same choices through flags and `--yes`, for reinstalling or running in CI (`--help` lists flags).
+Exit codes: `0` success; `1` something skipped, blocked or failed; `2` usage error.
+
+## Architecture
+
+The installer builds a **plan** (list of actions) from choices and detection, shows the plan and only then executes it.
+Building the plan writes nothing, enabling dry-run, tests and uninstall. One owner per file:
+
+| File | Responsibility |
+|---|---|
+| `detect.mjs` | Stage 1: Node, git, gitleaks, CLIs, PATH and stack (done). |
+| `convert.mjs` | Pure functions: Claude Code rules to Antigravity (`trigger:`), rules to the Codex block. |
+| `plan.mjs` | `buildPlan(choices, detection, paths)`: returns actions without writing. |
+| `third-party.mjs` and `third-party.json` | Pinned ECC and Impeccable versions and install/uninstall commands; fetch ECC at its tag to copy rules. |
+| `state.mjs` | Read and write `~/.vibecoding-devtools/state.json`. |
+| `execute.mjs` | Apply the plan (or only list, in dry-run), record state and uninstall from state. |
+| `panel.mjs` | `@clack/prompts` panel and the same choices through flags without the panel. |
+| `cli.mjs` | Commands `detect`, `install` (default), `uninstall`; flags `--dry-run`, `--yes`, `--json`. |
+
+**Plan actions**, each with `owner` (`kit`, `ecc` or `impeccable`) and `cli`:
+
+- `copy`: `source` to `destination` (file or folder).
+- `write`: `content` to `destination`.
+- `block`: `content` between markers `<!-- vibecoding-devtools:start -->` and `<!-- vibecoding-devtools:end -->` in
+  `destination`, leaving the rest of the file untouched.
+- `command`: `cmd` with `args` (list, never a shell string), in `cwd`, with extra `env`.
+
+**Already installed items** (read during detection, before the plan):
+
+- Kit: version and items from `state.json`, if present.
+- Skills with the same name in each CLI's folders, installed from another source.
+- Each CLI's plugins (`claude plugin list`, `codex plugin list`, `agy plugin list --json`), to find ECC or Impeccable
+  installed as plugins.
+- ECC and Impeccable installed through `npx`: each one's installation state and version.
+
+The plan then marks each action as **new**, **same** (skip), **update** (kit or third-party item at another version) or
+**conflict** (exists and does not belong to the kit: skip and warn). Failure or delay reading a CLI's plugins never
+authorizes installation: the third party is blocked with a warning. A third party already installed by another method
+(plugin instead of `npx`) is not installed again: the report names the active method.
+
+**Execution rules:**
+
+- Never overwrites a file it did not create: records a conflict in the report and skips, unless `--force`.
+- Records each created file with its content hash, each block and each third-party command in state.
+- Uninstall removes only state-recorded items unchanged since installation (matching hash); removes blocks; runs ECC's
+  `uninstall`; lists what Impeccable created for user confirmation. Changed file: warns and keeps it.
+- The entire user home comes from `paths.home` (and each CLI's folders derive from it), so tests run in a temporary
+  folder.
+
+**Choices** (returned by the panel or flags): target CLIs; scope (`global` or `project`, with root; flags `--scope` and
+`--project`); kit hooks yes or no (`--hooks`); Maestri package yes or no; ECC (CLIs, hooks yes or no, stack packages);
+Impeccable (CLIs).
+
+## What goes into each CLI
+
+| Item | Claude Code | Codex | Antigravity |
+|---|---|---|---|
+| Kit rules | `~/.claude/rules/vibecoding/` | marked block in `~/.codex/AGENTS.md` | `~/.gemini/config/rules/`, `trigger: always_on` |
+| Global ECC rules | `common` and `web` in `~/.claude/rules/ecc/` | `common` in `~/.codex/vibecoding/ecc/`, read on demand | not installed |
+| Stack rules (project) | `.claude/rules/ecc/<package>/` | project `AGENTS.md` row pointing to the package | not installed |
+| Kit skills | `~/.claude/skills/` | `~/.agents/skills/` | `~/.gemini/config/skills/` |
+| Kit hooks | `~/.claude/settings.json` | `~/.codex/hooks.json` (user approves in `/hooks`) | `~/.gemini/config/hooks.json` |
+| Project template | `CLAUDE.md` with `@AGENTS.md` | `AGENTS.md` | `AGENTS.md` |
+
+In project scope, rules, skills and templates go into the repository's `.claude/`, `.codex/`, `.agents/` and
+`AGENTS.md`. Hook scripts and registration stay in the home directories listed above and below.
+
+- **Codex:** the limit is 32 KiB across all `AGENTS.md` files. Kit rules (about 12 KiB) go in full; ECC's `common`
+  (about 18 KiB) would leave only 2 KiB for the project's `AGENTS.md`, so it lives in a separate file and the kit block
+  says when to read it.
+- **Antigravity:** always-on and global rules share 20 thousand tokens; only kit rules are installed, without ECC.
+- **Rules with `paths:`** (kit, or ECC on Codex): on Antigravity, kit rules become `trigger: glob` with `globs:`;
+  on Codex, a routing table row in the kit block.
+- **ECC rules on Claude Code:** copy each package's entire folder to preserve `../common/` references.
+- **Rules on Antigravity:** only the first level of `rules/` is read. No ECC packages are copied or flattened.
+
+## Hooks
+
+Copy scripts and `lib/` to `~/.vibecoding-devtools/hooks/`, running each hook with Node. Register `PreToolUse` handlers
+by merging JSON, identifying the kit's entries by script path and preserving existing user entries:
+
+- Claude Code: `~/.claude/settings.json`, `hooks.PreToolUse`, matcher `Bash|PowerShell`, timeout 30 seconds.
+- Codex: `~/.codex/hooks.json`, `hooks.PreToolUse`, matcher `Bash`, with `commandWindows`. Report that the user must
+  approve hooks in `/hooks`, including after hook changes.
+- Antigravity: `~/.gemini/config/hooks.json`, enabled entries `vibecoding-secret-scan` and
+  `vibecoding-maestri-protocol`, matcher `run_command`, timeout 30 seconds.
+
+`secret-scan` checks commits with gitleaks; `maestri-protocol` checks message headers and delegation footers, skipping
+raw input. Secret scanning is enabled by default; `--hooks` and the panel control kit hooks. The protocol hook is
+included only with the Maestri pack. Unknown input or uncertain commands never block; missing or failing gitleaks only
+warns. Scans run before command execution and cannot cover later file changes.
+See [hooks](../hooks/README.md) for details.
+
+Record hook files and JSON merges in installation state, with the same hash and conflict safeguards as other actions.
+Uninstall removes only the kit's registrations and unchanged installed files, preserving user content.
+
+## ECC
+
+- Pinned version: `ecc-universal@2.2.3` (tag `v2.2.3` at `github.com/affaan-m/ECC`).
+- **Modules, no profile:** `minimal` and `core` profiles include `rules-core`, which would install rules again. The
+  installer passes modules explicitly: `agents-core`, `commands-core`, `platform-configs` and `workflow-quality`, plus
+  `hooks-runtime` only if the user enables ECC hooks (equivalent to `core` without rules).
+- Claude Code: `npx ecc-universal@2.2.3 install --target claude --modules <modules>`, which records installed items and
+  supports uninstall.
+- Codex: native plugin (`codex plugin marketplace add affaan-m/ECC@v2.2.3` and `codex plugin add ecc@ecc`); hooks need
+  approval in `/hooks`. The installer still copies and routes rules from the `common` package.
+- Antigravity: ECC is not installed; no ECC commands, rules or flattening.
+- **Never two methods for the same CLI** (plugin and `install`, for example): hooks would be duplicated.
+- Precedence: kit rules state which ECC rules they replace (for example, `testing` replaces the 80% target and mandatory
+  TDD). Project rules override both.
+
+## Impeccable
+
+- Pinned version: `impeccable@4.8.0` on npm (tag `cli-v4.8.0` at `github.com/pbakaus/impeccable`), in every command.
+- `npx impeccable@4.8.0 install --providers=<claude,codex,antigravity> --scope=<project|global> -y`. Without a TTY,
+  always
+  pass `-y` and `--providers`, otherwise the command waits for input.
+- In project scope, runs at the project root; globally, the user's home is the working folder (verified with 4.8.0,
+  outside a git repository). No uninstall: the report lists what it created.
+- On Antigravity, only the skill is installed, without a hook. Writes to `.agent/`; check that the skill does not load
+  twice. Impeccable remains available on all three CLIs.
+
+## Check during implementation
+
+- Multi-module `--modules` syntax and whether `agents-core` writes any `AGENTS.md` (run with `--dry-run`).
+- Whether the ECC plugin on Codex brings its own rules.

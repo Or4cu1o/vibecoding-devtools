@@ -1,34 +1,33 @@
 # vibecoding-devtools
 
-Kit de rules, skills, hooks e modelos para desenvolvimento com IA em Claude Code, Codex e Antigravity. Este arquivo vale
-para quem trabalha no próprio kit; o modelo para os projetos está em `templates/AGENTS.md`.
+Kit of rules, skills, hooks and templates for AI development in Claude Code, Codex and Antigravity. This file applies
+to work on the kit itself; the project template is in `templates/AGENTS.md`.
 
-## Convenções
+## Conventions
 
-- **Genérico:** nada de nomes de projetos, pessoas ou empresas. As únicas dependências citadas são ECC e Impeccable.
-- **Fonte:** o formato do Claude Code é a fonte; as conversões para Codex e Antigravity seguem
-  `docs/compatibilidade-clis.md`. Mudou algo nesse carregamento, atualize esse arquivo.
-- **Idioma:** pt-BR. As skills do pacote Maestri estão em inglês até decidirmos a tradução.
-- **Markdown:** linhas de até 120 caracteres, tabelas compactas (`|---|`) e bloco de código sempre com a linguagem.
-- **Rules:** um tema por arquivo em `rules/`, curto e sempre válido; checklist longo vira skill.
-- **Skills:** `skills/<nome>/SKILL.md`, com `name` igual ao nome da pasta e `description` numa linha só. Outros campos
-  só valem no Claude Code.
-- **Referências:** ao citar uma regra ou skill (regra `testes`, skill `triagem-de-risco`), ela precisa existir no kit.
-- **Achados e risco:** a escala e a regra de bloqueio ficam só na `processo-por-risco`; os outros arquivos apontam para
-  ela.
+- **Generic:** no project, person or company names. The only dependencies mentioned are ECC and Impeccable.
+- **Source:** Claude Code format is the source; conversions for Codex and Antigravity follow
+  `docs/cli-compatibility.md`. If loading behavior changes, update that file.
+- **Language:** English, except the root `README.md`, which stays in pt-BR.
+- **Markdown:** lines up to 120 characters, compact tables (`|---|`) and code blocks always with a language.
+- **Rules:** one topic per file in `rules/`, short and always applicable; long checklists become skills.
+- **Skills:** `skills/<name>/SKILL.md`, with `name` matching the folder name and `description` on one line. Other fields
+  apply only to Claude Code.
+- **References:** a cited rule or skill (the `testing` rule, the `risk-triage` skill) must exist in the kit.
+- **Findings and risk:** the scale and blocking rule live only in `risk-process`; other files refer to it.
 
-## Versões
+## Versions
 
-SemVer com tag `vX.Y.Z`. Toda mudança entra em `[Unreleased]` no `CHANGELOG.md`, no mesmo commit; no release, a seção
-vira `[X.Y.Z] - AAAA-MM-DD`. Commits em Conventional Commits.
+SemVer with tag `vX.Y.Z`. Every change goes under `[Unreleased]` in `CHANGELOG.md`, in the same commit; on release,
+the section becomes `[X.Y.Z] - YYYY-MM-DD`. Conventional Commits.
 
-## Verificação
+## Verification
 
-O mesmo que o CI roda, antes de todo commit:
+The same checks CI runs, before every commit:
 
 ```bash
 npx markdownlint-cli2@0.24.0 "**/*.md"
-node scripts/validar-kit.mjs
+node scripts/validate-kit.mjs
 npm test
 gitleaks git --pre-commit --staged --redact --no-banner
 ```
