@@ -1,78 +1,96 @@
 # Changelog
 
-Mudanças relevantes do vibecoding-devtools. Formato baseado em [Keep a
-Changelog](https://keepachangelog.com/pt-BR/1.1.0/); versões em [SemVer](https://semver.org/lang/pt-BR/).
+Notable changes to vibecoding-devtools. Format based on [Keep a
+Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-05
+
+### Added
+
+- Kit hooks `secret-scan` and `maestri-protocol` for Claude Code, Codex and Antigravity, with installer registration
+  controlled by the panel and `--hooks`. Secret scanning is on by default; protocol checks require the Maestri pack.
+  Codex requires approval in `/hooks`. Uncertain input allows execution; missing or failing gitleaks only warns.
+
+### Changed
+
+- Kit content, installer, commands and documentation are now in English; the root `README.md` stays in pt-BR.
+- Renamed rules to `risk-process`, `testing`, `model-tiers`, `context-on-demand`, `maestri-messaging` and
+  `maestri-usage`; skills to `risk-triage` and `security-surfaces`, with English paths under `surfaces/`; docs to
+  `cli-compatibility.md` and `installer.md`. Code now lives under `installer/`, with English module names, commands
+  and flags; the validator
+  is `scripts/validate-kit.mjs`. No Portuguese aliases are retained.
+- ECC is no longer installed on Antigravity: no commands, rules or flattening. Codex keeps its ECC plugin and routes
+  rules from the `common` package; Impeccable remains available on all three CLIs.
+
 ## [0.1.0] - 2026-11-04
 
-### Adicionado
+### Added
 
-- Instalador completo: painel com `@clack/prompts` e flags; plano de ações com situação nova, igual, atualizar ou
-  conflito; conversões para Codex (bloco no `AGENTS.md` com orçamento de 32 KiB) e Antigravity (`trigger:` e pacotes
-  do ECC achatados com links reescritos); ECC e Impeccable em versões fixadas; estado com trava, escrita atômica e
-  desinstalação pelo hash. Testado de ponta a ponta em Linux e Windows.
-- `maestri-agent-cli`: onde cada CLI lista os identificadores exatos de modelo e como passá-los no lançamento.
+- Complete installer: panel with `@clack/prompts` and flags; action plan with new, same, update or conflict status;
+  conversions for Codex (`AGENTS.md` block with a 32 KiB budget) and Antigravity (`trigger:` and flattened ECC packages
+  with rewritten links); pinned ECC and Impeccable versions; state with locking, atomic writes and hash-based
+  uninstall. Tested end to end on Linux and Windows.
+- `maestri-agent-cli`: where each CLI lists exact model identifiers and how to pass them at launch.
 
 ## [0.0.2] - 2026-11-04
 
-### Adicionado
+### Added
 
-- CI no GitHub Actions: markdownlint, validação da estrutura do kit (`scripts/validar-kit.mjs`) e varredura de segredos
-  com gitleaks. Actions fixadas por SHA e gitleaks com hash conferido.
-- `CLAUDE.md` com as convenções e a verificação para quem trabalha no kit.
-- Skill `maestri-budget` e regra `maestri-consumo`: o Maestro lê cota e contexto só em checkpoints, calcula o ritmo de
-  cada cota para que dure o ciclo inteiro e acabe quase vazia e distribui o trabalho entre as CLIs; limpa o contexto
-  antes de uma tarefa sem relação com a anterior e compacta só entre tarefas. Troca de modelo só em agentes
-  Antigravity que o usuário marcar como gerenciados.
-- Instalador, etapa 1: `node instalador/cli.mjs detectar` confere Node, git, Claude Code, Codex e Antigravity (versão,
-  pasta e se estão fora do PATH) e sugere os pacotes de rules do ECC pela stack do projeto. Testes rodam no CI em Linux
-  e Windows.
+- GitHub Actions CI: markdownlint, kit structure validation (`scripts/validate-kit.mjs`) and secrets scanning with
+  gitleaks. Actions pinned by SHA and gitleaks hash verified.
+- `CLAUDE.md` with conventions and verification for kit contributors.
+- The `maestri-budget` skill and `maestri-usage` rule: the Maestro reads quota and context only at checkpoints,
+  calculates each quota's pace to last the full cycle and end nearly empty, and distributes work across CLIs; clears
+  context before an unrelated task and compacts only between tasks. Model changes only for Antigravity agents the
+  user marks as managed.
+- Installer, stage 1: `node installer/cli.mjs detect` checks Node, git, Claude Code, Codex and Antigravity (version,
+  folder and whether outside PATH), and suggests ECC rule packages from the project stack. Tests run in CI on Linux
+  and Windows.
 
-### Alterado
+### Changed
 
-- Revisão dupla (Claude e Codex), com contraproposta até o consenso:
-  - `processo-por-risco`: regra de bloqueio sem contradição (Menor bloqueia só em nível Alto; Crítico e Maior
-    anteriores ao PR esperam a decisão do dono); cobertura e baseline com escopo único; caminho para projeto sem CI ou
-    revisores; paralelo só entre áreas independentes; triagem por modelo leve nunca rebaixa o nível.
-  - `base`: varredura de segredos sobre o que vai entrar no commit (`gitleaks git --pre-commit --staged --redact`) e
-    consulta à documentação oficial de plataformas que mudam.
-  - `contexto-sob-demanda` só carrega ao mexer em `AGENTS.md`, `CLAUDE.md`, rules ou skills (`paths:`).
-  - `maestri-consumo` encurtada; `maestri-budget` com faixas de ritmo corretas (acima de 1,0 a cota acaba antes da
-    renovação) e decisão pela janela mais restritiva; `maestri-protocol` reconhece o rodapé de delegação.
-  - Instalador: detecção distingue CLI que não responde, lê PATH entre aspas, detecta gitleaks e explica por que o
-    projeto não foi reconhecido; especificação com versões fixadas em todos os comandos e rules achatadas para o
-    Antigravity.
-  - Validador aceita CRLF e BOM, recusa `description` em bloco e confere referências em inglês; roda também no Windows.
-    `.gitattributes` fixa LF.
-- `maestri-agent-cli`: o Maestro registra a CLI e a conta de cada agente num `ledger.md` na própria pasta de sessão e
-  consulta antes de agir; quando a tela não bate com a referência, confia na tela e avisa o usuário; a skill não
-  carrega mais a cada `maestri check`. Referências com as três cotas do Antigravity (Gemini, Claude e GPT, Argon) e onde
-  ler o contexto em cada CLI.
-- Markdown dentro do limite de 120 colunas, com a linguagem em todo bloco de código.
-- Especificação do instalador fechada: Node ≥ 22, painel em `@clack/prompts`, rules do ECC copiadas pelo próprio
-  instalador (`common` global nas três CLIs e `web` só no Claude Code), ECC por módulos sem `rules-core`, hooks do ECC
-  desligados por padrão e `uninstall` na 0.1.0.
+- Dual review (Claude and Codex), with counterproposals until consensus:
+  - `risk-process`: consistent blocking rule (Minor blocks only at High risk; Critical and Major predating the PR
+    await the owner's decision); coverage and baseline with a single scope; path for projects without CI or reviewers;
+    parallel work only across independent areas; lightweight-model triage never lowers the level.
+  - `base`: secrets scan over staged changes (`gitleaks git --pre-commit --staged --redact`) and consulting official
+    documentation for changing platforms.
+  - `context-on-demand` loads only when editing `AGENTS.md`, `CLAUDE.md`, rules or skills (`paths:`).
+  - `maestri-usage` shortened; `maestri-budget` with correct pace bands (above 1.0, quota runs out before renewal) and
+    decisions based on the tightest window; `maestri-protocol` recognizes the delegation footer.
+  - Installer: detection distinguishes unresponsive CLIs, reads quoted PATH entries, detects gitleaks and explains
+    unrecognized projects; specification with pinned versions in every command and flattened rules for Antigravity.
+  - Validator accepts CRLF and BOM, rejects block `description` and checks English references; also runs on Windows.
+    `.gitattributes` enforces LF.
+- `maestri-agent-cli`: the Maestro records each agent's CLI and account in a `ledger.md` in its own session folder and
+  consults it before acting; when the screen differs from the reference, trusts the screen and tells the user; the
+  skill no longer loads on every `maestri check`. References include Antigravity's three quotas (Gemini, Claude and GPT,
+  Argon) and where to read context in each CLI.
+- Markdown within 120 columns, with a language on every code block.
+- Installer specification finalized: Node ≥ 22, `@clack/prompts` panel, ECC rules copied by our installer (`common`
+  globally on all three CLIs and `web` only on Claude Code), modular ECC without `rules-core`, ECC hooks disabled by
+  default and `uninstall` in 0.1.0.
 
 ## [0.0.1] - 2026-10-29
 
-### Adicionado
+### Added
 
-- `README.md` com o conteúdo do kit.
-- Rules: `base`, `processo-por-risco`, `testes`, `modelos-por-risco`, `contexto-sob-demanda` e `maestri-protocolo`.
-- Skills: `triagem-de-risco`, `revisao-de-seguranca` (superfícies dinheiro e valores, contas e dados, entradas e
-  serviços, segredos e infraestrutura), `maestri-protocol` e `maestri-agent-cli` (referências para Antigravity, Claude
-  Code e Codex).
-- Modelos em `templates/`: `.coderabbit.yaml`, `AGENTS.md` (roteamento e mapa de risco) e `CLAUDE.md` que importa o
+- `README.md` with kit contents.
+- Rules: `base`, `risk-process`, `testing`, `model-tiers`, `context-on-demand` and `maestri-messaging`.
+- Skills: `risk-triage`, `security-surfaces` (money and value, accounts and data, inputs and services, secrets and
+  infrastructure surfaces), `maestri-protocol` and `maestri-agent-cli` (references for Antigravity, Claude Code and
+  Codex).
+- Templates in `templates/`: `.coderabbit.yaml`, `AGENTS.md` (routing and risk map) and `CLAUDE.md` importing
   `AGENTS.md`.
-- Ideias de hooks em `hooks/README.md`, incluindo a validação do cabeçalho do protocolo Maestri.
-- `docs/compatibilidade-clis.md`: como Claude Code, Codex e Antigravity carregam instruções, rules, skills, hooks e
-  agentes.
-- `docs/instalador.md`: especificação do instalador.
+- Hook ideas in `hooks/README.md`, including Maestri protocol header validation.
+- `docs/cli-compatibility.md`: how Claude Code, Codex and Antigravity load instructions, rules, skills, hooks and
+  agents.
+- `docs/installer.md`: installer specification.
 
-### Alterado
+### Changed
 
-- Licença de GPL-2.0 para MIT.
-- Achados de revisão passam a usar Crítico, Maior, Menor e Sugestão; Baixo, Médio e Alto ficam só para o risco da
-  tarefa. A regra de bloqueio fica só na `processo-por-risco`.
+- License from GPL-2.0 to MIT.
+- Review findings now use Critical, Major, Minor and Suggestion; Low, Medium and High are reserved for task risk.
+  The blocking rule lives only in `risk-process`.
