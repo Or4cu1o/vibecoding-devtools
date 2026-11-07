@@ -10,9 +10,12 @@ import { readState, hashContent } from './state.mjs';
 import { parseFlags, choicesFromFlags, panel, confirmExecution, Cancellation } from './panel.mjs';
 import * as thirdPartyApi from './third-party.mjs';
 import { jsonMergeSituation } from './json-merge.mjs';
+import { envListSituation } from './env-list.mjs';
 import { CODEX_HOOK_APPROVAL } from './hooks.mjs';
+import { teamMain } from './team.mjs';
 
 export const HELP = `Usage: vibecoding-devtools [install|update|detect|uninstall] [flags]
+       vibecoding-devtools team [--roles-only] [--update-roles] [--dry-run]   (Maestri team; see team --help)
 Default command: install. Without a TTY: use --yes to apply or --dry-run to preview.
 Update reuses saved install choices; explicit flags override them. Run install first if no choices are saved.
 Update removes unchanged kit-owned items absent from the new plan; edited and third-party items are retained.
@@ -75,6 +78,10 @@ export function summarizePlan(plan, { home, force = false } = {}) {
     if (action.type === 'json-merge') {
       const previous = state.items.find((i) => i.type === action.type && i.destination === action.destination);
       return { ...action, situation: jsonMergeSituation(current, action, previous) };
+    }
+    if (action.type === 'env-list') {
+      const previous = state.items.find((i) => i.type === action.type && i.destination === action.destination);
+      return { ...action, situation: envListSituation(current, action, previous) };
     }
     let desired;
     if (action.type === 'block') {
@@ -148,6 +155,7 @@ export async function main(argv = process.argv.slice(2), options = {}) {
     isTTY = Boolean(process.stdin.isTTY && process.stdout.isTTY), out = console.log, err = console.error,
     detect = detectAll, choose = panel, confirm = confirmExecution, prepareThirdParty: prepare, thirdParty = thirdPartyApi,
     planBuilder = buildPlan, apply = execute, remove = uninstall } = options;
+  if (argv[0] === 'team') return teamMain(argv.slice(1), { kit, out, err, home });
   let flags;
   let warnings = [];
   let errorCode = 2;

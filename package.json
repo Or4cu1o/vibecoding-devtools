@@ -16,6 +16,7 @@
     "installer/*.mjs",
     "!installer/*.test.mjs",
     "installer/third-party.json",
+    "installer/codex-maestri.rules",
     "hooks/*.mjs",
     "!hooks/*.test.mjs",
     "!hooks/README.md",
@@ -24,6 +25,7 @@
     "rules/",
     "skills/",
     "templates/",
+    "team/",
     "README.md",
     "LICENSE",
     "npm-shrinkwrap.json"

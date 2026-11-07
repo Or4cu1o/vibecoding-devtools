@@ -1,0 +1,59 @@
+{
+  "maestro": "Regente",
+  "protocol": "roles/_team-protocol.md",
+  "presets": [
+    {
+      "name": "Team Maestro",
+      "command": "claude --model claude-opus-5-5 --effort high --permission-mode auto --add-dir ../../..",
+      "maestro": true
+    }
+  ],
+  "agents": [
+    { "name": "Regente", "role": "Team Maestro", "roleFile": "roles/team-maestro.md", "color": "#C9A227", "icon": "music.note", "preset": "Team Maestro" },
+    { "name": "Vitral", "role": "Frontend Engineer", "roleFile": "roles/frontend-engineer.md", "color": "#2D9CDB", "icon": "desktopcomputer", "command": "claude --model claude-sonnet-5-5 --effort high --permission-mode auto --add-dir ../../.." },
+    { "name": "Bússola", "role": "UX/UI Designer", "roleFile": "roles/ux-ui-designer.md", "color": "#9B5DE5", "icon": "pencil.and.ruler", "command": "claude --model claude-opus-5-5 --effort high --permission-mode auto --add-dir ../../.." },
+    { "name": "Alicerce", "role": "Backend Architect", "roleFile": "roles/backend-architect.md", "color": "#6A4C93", "icon": "cube", "command": "claude --model claude-sonnet-5-5 --effort high --permission-mode auto --add-dir ../../.." },
+    { "name": "Forja", "role": "Backend Engineer", "roleFile": "roles/backend-engineer.md", "color": "#1F6FB2", "icon": "hammer", "command": "codex --no-daemon --approve-for-me -m gpt-6.1-sol -c model_reasoning_effort=medium --add-dir ../../.." },
+    { "name": "Sentinela", "role": "AppSec Auditor", "roleFile": "roles/appsec-auditor.md", "color": "#9D0208", "icon": "shield.checkered", "command": "claude --model claude-opus-5-5 --effort medium --permission-mode auto --add-dir ../../.. --disallowedTools Edit Write NotebookEdit" },
+    { "name": "Crivo", "role": "Code Reviewer", "roleFile": "roles/code-reviewer.md", "color": "#D62839", "icon": "seal", "command": "claude --model claude-opus-5-5 --effort medium --permission-mode auto --add-dir ../../.. --disallowedTools Edit Write NotebookEdit" },
+    { "name": "Guindaste", "role": "DevOps Engineer", "roleFile": "roles/devops-engineer.md", "color": "#2A9D8F", "icon": "server.rack", "command": "claude --model claude-sonnet-5-5 --effort medium --permission-mode auto --add-dir ../../.." },
+    { "name": "Ensaio", "role": "QA Engineer", "roleFile": "roles/qa-engineer.md", "color": "#E76F51", "icon": "testtube.2", "command": "codex --no-daemon --approve-for-me -m gpt-6.1-sol -c model_reasoning_effort=medium --add-dir ../../.." },
+    { "name": "Retina", "role": "Visual QA Inspector", "roleFile": "roles/visual-qa-inspector.md", "color": "#F4A261", "icon": "eye", "command": "agy --model gemini-4-argon-medium --effort medium --mode auto --add-dir ../../.." },
+    { "name": "Sonda", "role": "Research Analyst", "roleFile": "roles/research-analyst.md", "color": "#43AA8B", "icon": "antenna.radiowaves.left.and.right", "command": "agy --model gemini-4-argon-high --effort high --mode auto --add-dir ../../.." },
+    { "name": "Aquarela", "role": "Visual Asset Designer", "roleFile": "roles/visual-asset-designer.md", "color": "#F15BB5", "icon": "paintbrush", "command": "codex --no-daemon --approve-for-me -m gpt-6.1-sol -c model_reasoning_effort=low --add-dir ../../.." },
+    { "name": "Formiga", "role": "Task Runner", "roleFile": "roles/task-runner.md", "color": "#8D99AE", "icon": "wrench", "command": "agy --model gemini-3.8-flash-medium --effort medium --mode accept-edits --add-dir ../../.. --settings {settings}", "settingsFile": "settings/task-runner-limited.json" }
+  ],
+  "peers": [
+    ["Vitral", "Bússola"], ["Vitral", "Alicerce"], ["Vitral", "Ensaio"], ["Vitral", "Crivo"], ["Vitral", "Retina"],
+    ["Bússola", "Retina"], ["Bússola", "Aquarela"],
+    ["Alicerce", "Forja"], ["Alicerce", "Guindaste"], ["Alicerce", "Sentinela"],
+    ["Forja", "Ensaio"], ["Forja", "Crivo"], ["Forja", "Sentinela"],
+    ["Guindaste", "Sentinela"], ["Guindaste", "Crivo"]
+  ],
+  "notes": [
+    { "name": "Team Roster", "file": "notes/team-roster.md", "color": "charcoal", "connect": ["Regente"] }
+  ],
+  "fichario": {
+    "name": "Project Context",
+    "pages": [
+      { "name": "Requirements", "file": "notes/project-context/requirements.md" },
+      { "name": "Acceptance Criteria", "file": "notes/project-context/acceptance-criteria.md" },
+      { "name": "Decisions", "file": "notes/project-context/decisions.md" },
+      { "name": "Contracts & Integrations", "file": "notes/project-context/contracts-integrations.md" },
+      { "name": "Code Standards", "file": "notes/project-context/code-standards.md" },
+      { "name": "Design System", "file": "notes/project-context/design-system.md" },
+      { "name": "Ops Runbook", "file": "notes/project-context/ops-runbook.md" },
+      { "name": "Risks & Backlog", "file": "notes/project-context/risks-backlog.md" }
+    ],
+    "connect": ["Regente", "Bússola", "Vitral", "Alicerce", "Forja", "Sentinela", "Crivo", "Guindaste", "Ensaio", "Retina"]
+  },
+  "portals": [
+    { "name": "Gemini", "url": "https://gemini.google.com/app", "connect": ["Aquarela"] }
+  ],
+  "partitura": {
+    "name": "vibecoding-devtools",
+    "icon": "music.note",
+    "color": "#C9A227",
+    "description": "Permanent 12-specialist web dev team led by Regente (Maestro). Roster in Team Roster note; per-project context in the Project Context fichario."
+  }
+}
