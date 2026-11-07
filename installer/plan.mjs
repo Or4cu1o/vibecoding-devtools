@@ -1,11 +1,13 @@
 // Read-only planning performs no writes, network calls, execution or real-home access.
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { isUtf8 } from "node:buffer";
 import { readState, hashContent } from "./state.mjs";
 import { convertAntigravityRule, readFrontmatter, buildCodexBlock } from "./convert.mjs";
 import { hookActions } from './hooks.mjs';
 import { jsonMergeSituation } from './json-merge.mjs';
+import { envListSituation } from './env-list.mjs';
 
 const CLIS = ["claude", "codex", "agy"];
 const uniqueList = (items = []) => [...new Set(items)].sort();
@@ -84,6 +86,7 @@ function situationOf(action, items) {
   let previous = items.find((item) => item.type === action.type && samePath(item.destination, action.destination));
   if (previous?.pending && previous.hashBefore === hashContent(current)) previous = previous.previous;
   if (action.type === 'json-merge') return jsonMergeSituation(current, action, previous);
+  if (action.type === 'env-list') return envListSituation(current, action, previous);
   if (action.type === "block") {
     if (!isUtf8(current)) return "conflict";
     const block = extractBlock(current.toString("utf8"));
@@ -135,9 +138,23 @@ export function reconcileUpdate(plan, { home }) {
     item.type === 'block' ? item.marker ?? START : null]);
   const wanted = new Set(actions.filter((a) => a.destination).map(key));
   const removals = state.items.filter((item) => item.owner === 'kit'
-    && ['copy', 'write', 'block', 'json-merge'].includes(item.type) && !wanted.has(key(item)))
+    && ['copy', 'write', 'block', 'json-merge', 'env-list'].includes(item.type) && !wanted.has(key(item)))
     .map((item) => ({ ...item, operation: 'remove', situation: 'remove' }));
   return Object.assign([...removals, ...actions], { warnings: plan.warnings, preparation: plan.preparation });
+}
+
+// ECC's GateGuard asks for facts before the first edit of each file. These trees have no import value and agents
+// write to them all the time: Claude Code's temp directory (scratchpad), its auto memory and the Maestri role folders.
+// The temp directory follows CLAUDE_CODE_TMPDIR as Claude Code documents it: <dir>/claude-<uid> on Unix,
+// <dir>/claude on Windows, with /tmp or the system temp directory as <dir>.
+export function gateguardExemptions({ home, maestri, env = process.env, platform = process.platform,
+  uid = process.getuid?.() }) {
+  const slash = (file) => file.replace(/\\/g, "/").replace(/\/+$/, "");
+  const windows = platform === "win32";
+  const base = slash(env.CLAUDE_CODE_TMPDIR || (windows ? os.tmpdir() : "/tmp"));
+  const temp = windows ? `${base}/claude` : uid == null ? null : `${base}/claude-${uid}`;
+  return [...(temp ? [`${temp}/**`] : []), `${slash(home)}/.claude/projects/*/memory/**`,
+    ...(maestri ? ["**/.maestri/**"] : [])];
 }
 
 export function buildPlan(choices, detection, paths) {
@@ -206,6 +223,12 @@ export function buildPlan(choices, detection, paths) {
         add("copy", "kit", cli, path.join(kit, "skills", skill.name),
           path.join(destinationSkills, skill.name), null, `Kit skill: ${skill.name}`);
       }
+      // Agents message each other through the maestri CLI, which runs outside Codex's sandbox. The rules go to the
+      // user layer in either scope so every workspace's agents get them.
+      if (cli === "codex" && choices.maestri) {
+        add("copy", "kit", cli, path.join(kit, "installer", "codex-maestri.rules"),
+          path.join(home, ".codex", "rules", "vibecoding-devtools-maestri.rules"), null, "Maestri command rules for Codex");
+      }
     }
     if (eccClis.includes(cli)) {
       const packages = uniqueList(["common", ...(cli === "claude" ? ["web"] : []),
@@ -249,6 +272,13 @@ export function buildPlan(choices, detection, paths) {
     }
   }
   actions.push(...hookActions(choices, { home, kit, project }));
+  // Any ECC on Claude: the ECC plugin brings GateGuard even with the kit's ECC hooks off. The paths are this machine's,
+  // so they go to the user settings in either scope, never to a project's file.
+  if (eccClis.includes("claude")) {
+    actions.push({ type: "env-list", owner: "kit", cli: "claude", destination: path.join(home, ".claude", "settings.json"),
+      key: "GATEGUARD_EXEMPT_GLOBS", values: gateguardExemptions({ home, maestri: choices.maestri }),
+      description: "GateGuard exemptions for scratch, memory and Maestri files" });
+  }
   const plan = actions.map((action) => ({ ...action, situation: situationOf(action, state.items) }));
   if (warnings.length) plan.warnings = warnings;
   return plan;

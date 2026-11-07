@@ -6,6 +6,7 @@ import path from 'node:path';
 import { execute, uninstall, START, END } from './execute.mjs';
 import { readState, statePath, hashContent, saveState, withLock } from './state.mjs';
 import { buildPlan } from './plan.mjs';
+import { hookActions } from './hooks.mjs';
 import { fileURLToPath } from 'node:url';
 
 function environment(t) {
@@ -407,4 +408,48 @@ test('Failed uninstall stops removal and preserves the record for retry', (t) =>
   assert.match(r.errors[0].message, /8/);
   assert.equal(fs.existsSync(destination), true);
   assert.equal(readState(op).items.length, 2);
+});
+
+test('Env lists join the user value, repeat as identical and leave the settings as they were', (t) => {
+  const op = environment(t);
+  const settings = path.join(op.home, '.claude', 'settings.json');
+  fs.mkdirSync(path.dirname(settings), { recursive: true });
+  const original = '{\n  "env": { "GATEGUARD_EXEMPT_GLOBS": "mine/**" },\n  "model": "x"\n}\n';
+  fs.writeFileSync(settings, original);
+  const action = { type: 'env-list', owner: 'kit', cli: 'claude', destination: settings,
+    key: 'GATEGUARD_EXEMPT_GLOBS', values: ['**/.maestri/**'] };
+  assert.equal(execute([action], op).ok, true);
+  assert.equal(JSON.parse(fs.readFileSync(settings, 'utf8')).env.GATEGUARD_EXEMPT_GLOBS, 'mine/**,**/.maestri/**');
+  assert.equal(execute([action], op).actions[0].status, 'same');
+  assert.equal(uninstall(op).ok, true);
+  assert.equal(fs.readFileSync(settings, 'utf8'), original);
+  assert.deepEqual(readState(op).items, []);
+});
+
+test('An update that only changes the value list stops owning dropped values (regression)', (t) => {
+  const op = environment(t);
+  const settings = path.join(op.home, 'settings.json');
+  const action = (values) => ({ type: 'env-list', owner: 'kit', cli: 'claude', destination: settings,
+    key: 'GATEGUARD_EXEMPT_GLOBS', values });
+  execute([action(['old/**', 'keep/**'])], op);
+  fs.writeFileSync(settings, '{"env": {"GATEGUARD_EXEMPT_GLOBS": "keep/**"}}');
+  // The file already matches the new list: no bytes change, but the state must.
+  assert.equal(execute([action(['keep/**'])], op).ok, true);
+  assert.deepEqual(readState(op).items[0].values, ['keep/**']);
+  fs.writeFileSync(settings, '{"env": {"GATEGUARD_EXEMPT_GLOBS": "keep/**,old/**"}}');
+  uninstall(op);
+  assert.equal(fs.readFileSync(settings, 'utf8'), '{"env": {"GATEGUARD_EXEMPT_GLOBS": "old/**"}}');
+});
+
+test('A settings file the kit hooks created leaves on uninstall even with the env list in it', (t) => {
+  const op = environment(t);
+  const kit = fileURLToPath(new URL('../', import.meta.url));
+  const settings = path.join(op.home, '.claude', 'settings.json');
+  const hooks = hookActions({ clis: ['claude'], scope: 'global', maestri: false }, { home: op.home, kit });
+  const env = { type: 'env-list', owner: 'kit', cli: 'claude', destination: settings,
+    key: 'GATEGUARD_EXEMPT_GLOBS', values: ['**/.maestri/**'] };
+  assert.equal(execute([...hooks, env], op).ok, true);
+  assert.ok(JSON.parse(fs.readFileSync(settings, 'utf8')).env);
+  assert.equal(uninstall(op).ok, true);
+  assert.equal(fs.existsSync(settings), false);
 });

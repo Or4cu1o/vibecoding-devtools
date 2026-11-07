@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildPlan } from "./plan.mjs";
+import { buildPlan, gateguardExemptions } from "./plan.mjs";
 import { hashContent } from "./state.mjs";
 
 const kit = fileURLToPath(new URL("../", import.meta.url));
@@ -62,6 +62,44 @@ test("Maestri rules and skills are opt-in on all three CLIs", (t) => {
   }
 });
 
+test("Maestri pack installs the Codex command rules in the global home, in either scope", (t) => {
+  const paths = environment(t);
+  const rules = (options) => buildPlan(options, {}, paths)
+    .filter((a) => destination(a).endsWith("/.codex/rules/vibecoding-devtools-maestri.rules"));
+  for (const scope of ["global", "project"]) {
+    const [action] = rules(choices({ clis: ["codex"], maestri: true, scope }));
+    assert.ok(action.destination.startsWith(paths.home + path.sep), scope);
+    assert.equal(action.source, path.join(kit, "installer", "codex-maestri.rules"));
+  }
+  assert.equal(rules(choices({ clis: ["codex"] })).length, 0);
+  assert.equal(rules(choices({ clis: ["claude", "agy"], maestri: true })).length, 0);
+});
+
+test("ECC on Claude exempts this machine's scratch, memory and Maestri trees from GateGuard in the user settings", (t) => {
+  const paths = environment(t);
+  const exemptions = (options) => buildPlan(choices({ clis: [], ...options }), {}, paths).filter((a) => a.type === "env-list");
+  for (const scope of ["global", "project"]) {
+    const [action] = exemptions({ scope, maestri: true, ecc: { clis: ["claude"], hooks: false, stacks: [] } });
+    assert.equal(action.destination, path.join(paths.home, ".claude", "settings.json"), scope);
+    assert.equal(action.key, "GATEGUARD_EXEMPT_GLOBS");
+    assert.ok(action.values.includes(`${paths.home.replace(/\\/g, "/")}/.claude/projects/*/memory/**`));
+    assert.ok(action.values.includes("**/.maestri/**"));
+  }
+  assert.equal(exemptions({ ecc: { clis: ["codex"], hooks: true, stacks: [] } }).length, 0);
+  assert.equal(exemptions({ clis: ["claude"] }).length, 0);
+});
+
+test("GateGuard temp exemption follows CLAUDE_CODE_TMPDIR, the uid on Unix and no uid on Windows", () => {
+  for (const [system, temp] of [
+    [{ platform: "linux", uid: 1000, env: {} }, "/tmp/claude-1000/**"],
+    [{ platform: "darwin", uid: 501, env: { CLAUDE_CODE_TMPDIR: "/private/tmp/" } }, "/private/tmp/claude-501/**"],
+    [{ platform: "win32", uid: null, env: { CLAUDE_CODE_TMPDIR: "C:\\Temp" } }, "C:/Temp/claude/**"],
+  ]) {
+    assert.deepEqual(gateguardExemptions({ home: "/h", maestri: false, ...system }), [temp, "/h/.claude/projects/*/memory/**"]);
+  }
+  assert.deepEqual(gateguardExemptions({ home: "/h", platform: "linux", uid: null, env: {} }), ["/h/.claude/projects/*/memory/**"]);
+});
+
 test("Global ECC uses common and web on Claude and common on Codex without stack packages", (t) => {
   const paths = environment(t);
   const plan = buildPlan(choices({ clis: [], ecc: {
@@ -89,7 +127,8 @@ test("Project plans deduplicate templates and shared skills and preserve ECC pat
   assert.ok(plan.every((a) => a.owner !== "ecc" || a.cli !== "agy"));
   assert.match(plan.find((a) => a.type === "block").content, /stack typescript/);
   assert.equal(new Set(plan.map((a) => `${a.type}:${a.destination}`)).size, plan.length);
-  assert.ok(plan.every((a) => a.destination.startsWith(paths.project + path.sep)));
+  // GateGuard exemptions hold this machine's paths, so they stay in the user settings.
+  assert.ok(plan.every((a) => a.type === "env-list" || a.destination.startsWith(paths.project + path.sep)));
   assert.equal(fs.existsSync(paths.project), false);
 });
 

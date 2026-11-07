@@ -5,6 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { isUtf8 } from 'node:buffer';
 import { readState, saveState, hashContent, writeAtomic, withLock, kitVersion } from './state.mjs';
 import { mergeJson, jsonMergeSnapshot } from './json-merge.mjs';
+import { envListMerge, envListStale } from './env-list.mjs';
 
 export const START = '<!-- vibecoding-devtools:start -->';
 export const END = '<!-- vibecoding-devtools:end -->';
@@ -17,6 +18,7 @@ const marker = (item) => item.type === 'block' ? item.marker ?? START : null;
 const identity = (item) => item.type === 'command'
   ? JSON.stringify([item.type, item.cmd, item.args, item.cwd, item.cli, item.owner])
   : JSON.stringify([item.type, path.resolve(item.destination), marker(item)]);
+const emptyObject = (bytes) => Object.keys(JSON.parse(bytes.toString('utf8').replace(/^\uFEFF/, ''))).length === 0;
 const confirmed = ({ pending, operation, previous, hashBefore, diskHash, ...item }) => item;
 
 function checkPath(destination) {
@@ -206,8 +208,8 @@ export function execute(plan, { dryRun = false, force = false, home = os.homedir
         });
         return;
       }
-      if (!['copy', 'write', 'block', 'json-merge'].includes(action.type)) throw new Error(`Unknown type: ${action.type}`);
-      if (!['copy', 'json-merge'].includes(action.type) && typeof action.content !== 'string'
+      if (!['copy', 'write', 'block', 'json-merge', 'env-list'].includes(action.type)) throw new Error(`Unknown type: ${action.type}`);
+      if (!['copy', 'json-merge', 'env-list'].includes(action.type) && typeof action.content !== 'string'
         && !(action.type === 'write' && Buffer.isBuffer(action.content))) throw new Error('Action requires text content');
       const destination = path.resolve(action.destination);
       checkPath(destination);
@@ -248,6 +250,18 @@ export function execute(plan, { dryRun = false, force = false, home = os.homedir
         extra = { hash: merged.after.hash, format: action.format, scriptPaths: action.scriptPaths,
           scriptReferences: action.scriptReferences,
           created: previous?.created ?? !st, createdPaths: previous?.createdPaths ?? merged.createdPaths };
+      } else if (action.type === 'env-list') {
+        let merged;
+        try { merged = envListMerge(current, action, previous); }
+        catch (e) { conflict(action, e.message); return; }
+        if (merged.same && !(previous && envListStale(previous, action))) {
+          r.actions.push({ ...action, status: 'same' });
+          return;
+        }
+        // Same bytes still record the current values, so uninstall never takes a value the kit no longer lists.
+        content = merged.same ? current : merged.content;
+        extra = { key: action.key, values: action.values, preexisting: merged.preexisting,
+          created: previous?.created ?? !st, createdPaths: merged.createdPaths };
       } else if (action.type === 'block') {
         const text = current ? utf8(current) : '';
         if (text === null) { conflict(action, 'File is not valid UTF-8'); return; }
@@ -329,7 +343,9 @@ function runtimeRegistration(item, context) {
 
 function removeItems(context, r, items, home) {
   const dryRun = r.dryRun;
-  const isRegistration = (item) => ['block', 'json-merge'].includes(item.type);
+  // Env lists share settings.json with hook registrations; removing them first lets the item that created the file
+  // delete it once it is empty.
+  const isRegistration = (item) => ['block', 'json-merge', 'env-list'].includes(item.type);
   const order = [...items].reverse().sort((a, b) => Number(isRegistration(b)) - Number(isRegistration(a)));
   const { virtualFiles } = context;
   for (const item of order) {
@@ -360,7 +376,14 @@ function removeItems(context, r, items, home) {
         if (!snapshot.count) { context.forget(item); r.actions.push({ ...item, status: 'missing' }); continue; }
         if (snapshot.hash !== item.hash) { r.warnings.push({ item, reason: 'Modified JSON entries; retained' }); continue; }
         remaining = mergeJson(current, item, { remove: true }).content;
-        if (item.created && Object.keys(JSON.parse(remaining.toString('utf8').replace(/^\uFEFF/, ''))).length === 0) remaining = null;
+        if (item.created && emptyObject(remaining)) remaining = null;
+      } else if (item.type === 'env-list') {
+        let merged;
+        try { merged = envListMerge(current, item, item, { remove: true }); }
+        catch (e) { r.warnings.push({ item, reason: `${e.message}; retained` }); continue; }
+        if (merged.same) { context.forget(item); r.actions.push({ ...item, status: 'missing' }); continue; }
+        remaining = merged.content;
+        if (item.created && emptyObject(remaining)) remaining = null;
       } else if (item.type === 'block') {
         const text = utf8(current);
         if (text === null) { r.warnings.push({ item, reason: 'File is not valid UTF-8; retained' }); continue; }

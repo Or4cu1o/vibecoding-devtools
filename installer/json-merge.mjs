@@ -3,7 +3,7 @@ import path from 'node:path';
 import { hashContent } from './state.mjs';
 
 // Keep source ranges so edits never reserialize unrelated settings or hooks.
-function parse(text) {
+export function parse(text) {
   JSON.parse(text.replace(/^\uFEFF/, ''));
   let offset = text.charCodeAt(0) === 0xFEFF ? 1 : 0;
   const whitespace = () => { while (/\s/.test(text[offset] ?? '') && offset < text.length) offset++; };
@@ -53,7 +53,7 @@ function parse(text) {
   return root;
 }
 
-const property = (node, key) => node.children.find((child) => child.key === key);
+export const property = (node, key) => node.children.find((child) => child.key === key);
 const normalizePath = (file) => file.replace(/\\/g, '/');
 function ownsHook(hook, action) {
   if (!hook || typeof hook !== 'object') return false;
@@ -115,7 +115,7 @@ export function jsonMergeSnapshot(current, action) {
   return { hash: hashContent(JSON.stringify(entries.map((entry) => entry.fingerprint))), count: entries.length };
 }
 
-function removeChild(text, parent, entry) {
+export function removeChild(text, parent, entry) {
   const index = parent.children.indexOf(entry);
   const next = parent.children[index + 1];
   const previous = parent.children[index - 1];
@@ -150,7 +150,7 @@ function removeEmptyContainers(text, paths) {
   return text;
 }
 
-function append(text, parent, key, value) {
+export function append(text, parent, key, value) {
   const eol = text.includes('\r\n') ? '\r\n' : '\n';
   const unit = text.match(/\n([ \t]+)"/)?.[1] ?? '  ';
   const lineStart = text.lastIndexOf('\n', parent.start) + 1;

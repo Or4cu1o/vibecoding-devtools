@@ -1,0 +1,13 @@
+# vibecoding-devtools: Maestri commands Codex agents run outside the sandbox without a human prompt.
+# Installed globally as ~/.codex/rules/vibecoding-devtools-maestri.rules when the Maestri pack is selected.
+prefix_rule(pattern = ["maestri", "ask"], decision = "allow")
+prefix_rule(pattern = ["maestri", "check"], decision = "allow")
+prefix_rule(pattern = ["maestri", "list"], decision = "allow")
+prefix_rule(pattern = ["maestri", "recall"], decision = "allow")
+prefix_rule(pattern = ["maestri", "floor", "status"], decision = "allow")
+prefix_rule(pattern = ["maestri", "note", "read"], decision = "allow")
+prefix_rule(pattern = ["maestri", "note", "edit"], decision = "allow")
+prefix_rule(pattern = ["maestri", "portal"], decision = "allow")
+prefix_rule(pattern = ["maestri", "portal", "close"], decision = "forbidden")
+prefix_rule(pattern = ["maestri", "note", "delete"], decision = "forbidden")
+prefix_rule(pattern = ["maestri", "dismiss"], decision = "forbidden")
