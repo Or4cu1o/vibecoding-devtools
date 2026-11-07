@@ -76,9 +76,17 @@ const okTools = (over = {}) => ({
   ...over,
 });
 
-function session(t, { maestri = fakeMaestri(), tools = okTools() } = {}) {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'team-home-'));
-  t.after(() => fs.rmSync(home, { recursive: true, force: true }));
+// The settings path inside the Formiga recruit line of a dry run. The line shows the command as a JSON string and the
+// path may be quoted inside it, so both layers are undone instead of predicting how this platform formats the path.
+function settingsOf(lines) {
+  const line = lines.find((l) => l.startsWith('maestri recruit Formiga'));
+  const command = JSON.parse(line.slice(line.indexOf('--command ') + '--command '.length));
+  return command.match(/--settings (?:"([^"]*)"|(\S+))/).slice(1).find(Boolean);
+}
+
+function session(t, { maestri = fakeMaestri(), tools = okTools(), home: given } = {}) {
+  const home = given ?? fs.mkdtempSync(path.join(os.tmpdir(), 'team-home-'));
+  if (!given) t.after(() => fs.rmSync(home, { recursive: true, force: true }));
   const log = { out: [], err: [] };
   // `env: {}` keeps a MAESTRI_CLI set in the terminal running the tests from replacing the `maestri` binary name.
   const team = (...argv) => teamMain(argv, { kit, home, tools, env: {}, run: maestri.run,
@@ -135,11 +143,18 @@ test('--dry-run reports the prerequisites, prints the file and commands, and wri
   assert.equal(await team('--dry-run'), 0);
   assert.equal(log.out[0], 'Prerequisites found.');
   assert.ok(log.out.includes(`write ${settings}`));
-  const formiga = log.out.find((line) => line.startsWith('maestri recruit Formiga'));
-  // The command is shown as a quoted string, so backslashes in a Windows path appear escaped.
-  assert.ok(formiga.includes(`--settings ${JSON.stringify(settings).slice(1, -1)}`));
+  assert.equal(settingsOf(log.out), settings);
   assert.deepEqual(maestri.mutations(), []);
   assert.equal(fs.existsSync(path.join(home, '.vibecoding-devtools')), false);
+});
+
+test('the shown agent command carries the settings path whatever characters the home folder has', async (t) => {
+  for (const given of ['C:/Users/RUNNER~1/x', path.join(os.tmpdir(), 'RUNNER~1'), path.join(os.tmpdir(), 'with space')]) {
+    const { log, team, home } = session(t, { home: given });
+    assert.equal(await team('--dry-run'), 0);
+    const expected = path.join(home, '.vibecoding-devtools', 'team', 'task-runner-limited.json');
+    assert.equal(settingsOf(log.out), expected, given);
+  }
 });
 
 test('settings file: written once, kept if identical, a conflict if edited, replaced by --update-roles', async (t) => {
