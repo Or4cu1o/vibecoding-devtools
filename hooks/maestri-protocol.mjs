@@ -6,9 +6,10 @@ const reason = 'Maestri message must use a valid protocol header or end with the
 export function validMessage(message) {
   const text = message.replace(/\r\n/g, '\n');
   if (text.startsWith('~')) return header.test(text.split('\n')[0]);
-  // Match the skill footer at the end, including its report-back instruction.
-  const footer = text.match(/(?:^|\n)ref: ([^\n]+)\nWhen done, load the maestri-protocol skill and report back with:\nmaestri ask "([^"\n]+)" "~ ([^|\n]+?) \| STATUS \| ([^|\n]+?) \| one-line summary"\nSTATUS is one of DONE, PENDING, BLOCKED, ERROR, ACK\. Details go on the following lines\.\s*$/);
-  return Boolean(footer && footer[1] === footer[4]);
+  // Match the skill footer at the end, including its report-back instruction. Its quotes may be double or single,
+  // each pair matching, so a prompt already wrapped in double quotes can carry the footer unescaped.
+  const footer = text.match(/(?:^|\n)ref: ([^\n]+)\nWhen done, load the maestri-protocol skill and report back with:\nmaestri ask (["'])((?:(?!\2)[^\n])+)\2 (["'])~ ([^|\n]+?) \| STATUS \| ([^|\n]+?) \| one-line summary\4\nSTATUS is one of DONE, PENDING, BLOCKED, ERROR, ACK\. Details go on the following lines\.\s*$/);
+  return Boolean(footer && footer[1] === footer[6]);
 }
 
 function messages(words) {

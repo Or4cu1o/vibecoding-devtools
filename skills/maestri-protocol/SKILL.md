@@ -34,8 +34,8 @@ were given, or a question that is not a task) starts with one header line:
 - Summary: one line, no secrets.
 
 Details, evidence and lists go on the following lines; in PowerShell, use real line breaks, not `\n`. Keep the whole
-message inside quotes and avoid double quotes, backticks and `$` in it, which break the shell command. Never send a bare
-`ok` or `done`. One report per task; post progress with `maestri floor status`.
+message inside double quotes and avoid unescaped double quotes, backticks and `$` in it, which break the shell command.
+Never send a bare `ok` or `done`. One report per task; post progress with `maestri floor status`.
 
 ```text
 maestri ask "Maestro" "~ Hawk | DONE | T-12 | login screen wired, tests green, PR #412 open"
@@ -46,18 +46,23 @@ maestri ask "Maestro" "~ Kite | ACK | design-spec | reply format adopted"
 ## Delegating a task
 
 Give each task a ref (a task id like `T-12`, or the PR, branch or decision it concerns) and end the prompt with this
-footer, filled in with your name and the ref. Do this in `--batch` prompts too, and never ask for a bare `ok` reply.
+footer, filled in with your name (the address it reports to), the agent's name (who writes the report) and the ref.
+Do this in `--batch` prompts too, and never ask for a bare `ok` reply.
 
 ```text
 ref: T-12
 When done, load the maestri-protocol skill and report back with:
-maestri ask "Your Name" "~ Your Name | STATUS | T-12 | one-line summary"
+maestri ask "Your Name" "~ Agent Name | STATUS | T-12 | one-line summary"
 STATUS is one of DONE, PENDING, BLOCKED, ERROR, ACK. Details go on the following lines.
 ```
 
-Your name is under `You:` in `maestri list`; when the agent is in another workspace, use the `Name @ Workspace` address
-shown right under `You:` instead. The footer carries the whole format, so the agent can follow it even if it does not
-load this skill.
+When the prompt itself is wrapped in double quotes, escape the footer's quotes (`\"`) or write that one line with
+single quotes; the protocol hook accepts both. Your name is under `You:` in `maestri list`; when the agent is in another
+workspace, use the `Name @ Workspace` address shown right under `You:` instead. The footer carries the whole format, so
+the agent can follow it even if it does not load this skill.
+
+Pass each message as a literal argument. The protocol hook cannot read a message built at run time, such as
+`"$(cat task.md)"` or a variable, so such a message skips the check without warning.
 
 ## Receiving a message
 

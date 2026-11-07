@@ -23,6 +23,13 @@ for (const message of ['~ Ponte | OK | T-32 | Summary', '~Ponte | DONE | T-32 | 
   });
 }
 
+test('regression: accepts the footer report-back line in single quotes, rejects mixed quotes', () => {
+  const single = footer.replace('maestri ask "Ponte" "~ Agent | STATUS | T-32 | one-line summary"',
+    "maestri ask 'Ponte' '~ Agent | STATUS | T-32 | one-line summary'");
+  assert.equal(validMessage(single), true);
+  assert.equal(validMessage(single.replace("'Ponte'", '"Ponte"').replace("'~", '"~')), false);
+});
+
 test('accepts the delegation footer, including CRLF and trailing newline', () => {
   assert.equal(validMessage(footer), true);
   assert.equal(validMessage(`${footer.replaceAll('\n', '\r\n')}\r\n`), true);
