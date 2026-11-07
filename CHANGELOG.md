@@ -5,6 +5,42 @@ Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https
 
 ## [Unreleased]
 
+### Added
+
+- `team/`: versioned source of a 13-agent web development team for Maestri (Maestro plus twelve specialists), with
+  role prompts, the shared team protocol, the `Team Roster` and `Project Context` note templates, launch commands and
+  the Task Runner's Antigravity allowlist. It backs the global partitura `vibecoding-devtools`, whose export from the
+  Maestri app is `team/partitura/vibecoding-devtools.maestripartitura`, and ships in the npm package.
+- `vibecoding-devtools team [--roles-only] [--update-roles] [--dry-run]`: installs that team through the `maestri` CLI
+  from the `team/team.json` manifest. It stops on conflicts before any change, leaves identical roles alone and skips
+  what the caller already reaches. Before any `maestri` command (also with `--dry-run`) it checks read-only that the
+  CLIs, the Codex and Antigravity models in the manifest and ECC in Claude Code exist, and stops with exit 1 listing
+  what is missing. A run that fails midway says so and is resumed by running the same command again.
+- Team Task Runner: `--settings` takes a file, `~/.vibecoding-devtools/team/task-runner-limited.json`, written by `team`
+  (kept when identical, a conflict when different unless `--update-roles`), instead of inline JSON that broke on
+  PowerShell. `--update-roles` also replaces a Maestro preset whose command changed with `maestri preset set`.
+- Team Claude agents and the team's own preset, `Team Maestro`, get `--add-dir ../../..` to reach the workspace root.
+  The kit never creates or changes a preset named `Maestro Opus High`.
+- `docs/maestri-remote.md`: Maestri on one computer with the CLIs on another (portals, downloads, screenshots).
+- Maestri pack on Codex: global command rules (`~/.codex/rules/vibecoding-devtools-maestri.rules`) allow the `maestri`
+  commands agents use (`ask`, `check`, `list`, `recall`, `floor status`, `note read|edit`, `portal`) without a human
+  prompt and forbid `dismiss`, `note delete` and `portal close`.
+- ECC on Claude Code: the installer adds GateGuard exemptions to `env.GATEGUARD_EXEMPT_GLOBS` in
+  `~/.claude/settings.json` for Claude Code's temp directory, its auto memory and, with the Maestri pack, `.maestri/`
+  folders. It keeps the user's globs and removes only its own on uninstall.
+- `maestri-usage` rule: do not ask the user a question while a delegated task can still report back.
+- `maestri-agent-cli`: verified notes for agents recruited with a role (`--add-dir ../../..`, Codex hook review at
+  start, Antigravity folder trust), the verified Antigravity limited agent, and `--replace` with `--command`.
+
+### Fixed
+
+- `maestri-protocol` hook accepts the delegation footer's report-back line in single quotes as well as double quotes,
+  each pair matching; the skill explains how to embed the footer in a double-quoted prompt and names the reporting
+  agent, not the delegator, in the footer's header.
+- `validate-kit` knows the external `maestri-portal`, `imagegen` and `impeccable` skills.
+- `maestri-protocol` skill warns that messages built at run time (`$(cat file)`, variables) skip the hook.
+- `.maestri/` is ignored by git, markdownlint and `validate-kit`.
+
 ## [1.0.2] - 2026-11-06
 
 ### Changed

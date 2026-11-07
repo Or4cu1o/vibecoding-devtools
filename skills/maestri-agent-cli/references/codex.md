@@ -48,6 +48,19 @@ Send the text, then `\n` in a separate `--raw` call.
 - Changing the permission mode lowers or raises what the agent may do on the user's behalf: ask the user first.
 - `/approve` approves one retry of a recent auto-review denial.
 
+## Recruited with a role
+
+Verified on Codex 0.167.0, Linux (2026-11-06).
+
+- A recruit with a role starts in `<workspace>/.maestri/roles/<id>/`, and workspace-write covers only that folder. Add
+  `--add-dir ../../..` to the command: `/status` then shows `Workspace [<workspace root>]`. A folder every Codex agent
+  may write goes in `~/.codex/config.toml` as `[sandbox_workspace_write]` `writable_roots = ["<path>"]`.
+- `AGENTS.md` from the role folder and from the repository both load (`/status` → `Agents.md`).
+- Startup can stop on **Hooks need review** (`1 hook is new or changed`). With the ECC plugin, its `SessionStart` hook
+  asked again at every start: Codex re-syncs the plugin cache on launch and the stored content hash no longer matches.
+  Esc skips it (that hook does not run; trusted hooks keep running); `t` in the review panel trusts it until the next
+  start. Trusting is a persistent choice: ask the user once, then repeat it at each start.
+
 ## Autonomous launch and command rules
 
 Verified on Codex 0.166.0, Windows (2026-11-06): local help, isolated rule checks and a live recruited agent.
@@ -184,6 +197,9 @@ Codex Document Control and Safety Settings. Maestri's skills in the list come fr
 
 - With `--no-daemon` the startup warning is:
   `Running without the shared background server: Bedrock sign-in requires embedded mode.`
+
+- Startup warning `Codex could not find bubblewrap on PATH` on Linux: Codex falls back to its bundled bubblewrap.
+  Installing the OS package removes the warning.
 
 ## Not yet observed
 

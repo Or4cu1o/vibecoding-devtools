@@ -71,6 +71,30 @@ See the [CLI permission reference](https://antigravity.google/docs/permissions#c
 
 `--dangerously-skip-permissions` auto-approves every tool request. Use only at the user's explicit request.
 
+### Verified limited agent
+
+Verified on Antigravity CLI 1.5.2, Linux, Google AI Pro (2026-11-06), with the global `toolPermission` set to
+`always-proceed`:
+
+```bash
+agy --model <id> --effort <level> --mode accept-edits --add-dir ../../.. --settings <file>
+```
+
+`<file>` is a JSON file with `"toolPermission": "request-review"` and the `permissions` lists; session settings
+override the global value. Prefer a file over inline JSON: inline JSON needs different quoting in POSIX shells and
+PowerShell. Keep the file at a stable path (the kit's `team` command writes it to
+`~/.vibecoding-devtools/team/task-runner-limited.json`), not in a cache that can disappear. Verified with a file in a
+throwaway folder: an allowed command (`ls`) ran, a denied one (`rm -f a.txt`) was refused with `Matches user-configured
+deny rule` and the file stayed, and an unlisted one (`uname -s`) showed the command prompt (headless `-p` auto-denies
+it). A complete allowlist for a helper agent is in `team/settings/task-runner-limited.json`.
+
+### Recruited with a role
+
+- The first start in each role folder (`<workspace>/.maestri/roles/<id>/`) asks `Do you trust the contents of this
+  project?`; Enter trusts it and saves it in `trustedWorkspaces`. A folder Maestri just created holds only the role
+  files.
+- Add `--add-dir ../../..` so the workspace root is part of the agent's workspace.
+
 ## Permission prompts
 
 File edit or creation:

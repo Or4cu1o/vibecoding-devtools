@@ -28,7 +28,8 @@ confirmação. Use `--dry-run` para apenas conferir o plano. Detalhes no [guia d
 | [`skills/`](skills/) | triagem de risco, revisão de segurança e operação do Maestri |
 | [`templates/`](templates/) | `AGENTS.md` e `CLAUDE.md` para projetos, e `.coderabbit.yaml` |
 | [Hooks](hooks/README.md) | `secret-scan`, `maestri-protocol` e `full-suite` implementados |
-| [`docs/`](docs/) | instalação, compatibilidade e justificativas das regras |
+| [`team/`](team/README.md) | equipe de 13 agentes para o Maestri (roles, notas, partitura `vibecoding-devtools`), instalada com `npx vibecoding-devtools team` |
+| [`docs/`](docs/) | instalação, compatibilidade, Maestri em máquina remota e justificativas das regras |
 
 O `secret-scan` verifica segredos com gitleaks antes de commits. O `maestri-protocol` valida mensagens e exige o pacote
 Maestri. O `full-suite` aplica um bloqueio contornável a suítes completas em repositórios com CI; para uma execução

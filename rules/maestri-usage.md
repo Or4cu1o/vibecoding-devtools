@@ -10,3 +10,5 @@ Applies only when you are the Maestro in Maestri coordinating other agents. Deta
   managed, and only between tasks.
 - Before an unrelated task, clear the agent's context (command in its CLI reference). Never compact or clear an agent
   in the middle of a task.
+- Do not ask the user a question while a delegated task can still report back: the agent's ask back lands in your
+  input and can overwrite the user's answer. Collect pending replies first, or warn the user that one may arrive.

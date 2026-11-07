@@ -168,6 +168,20 @@ download ECC. `uninstall` continues to use item ownership and hashes, preserving
 | Kit skills | `~/.claude/skills/` | `~/.agents/skills/` | `~/.gemini/config/skills/` |
 | Kit hooks | `~/.claude/settings.json` | `~/.codex/hooks.json` (user approves in `/hooks`) | `~/.gemini/config/hooks.json` |
 | Project template | `CLAUDE.md` with `@AGENTS.md` | `AGENTS.md` | `AGENTS.md` |
+| Maestri command rules | not needed (auto mode) | `~/.codex/rules/vibecoding-devtools-maestri.rules`, global in either scope | not needed (auto mode) |
+| GateGuard exemptions (with ECC) | `env.GATEGUARD_EXEMPT_GLOBS` in `~/.claude/settings.json`, either scope | not applicable | not applicable |
+
+With the Maestri pack, Codex also gets command rules that let agents run the `maestri` commands they use for messaging,
+notes and portals outside the sandbox without a human prompt, and forbid `maestri dismiss`, `note delete` and
+`portal close`. They always go to the user's `~/.codex/rules/`, since every workspace's agents need them.
+
+With ECC on Claude Code, the kit adds path globs to `GATEGUARD_EXEMPT_GLOBS` so ECC's GateGuard stops asking for facts
+before agents write files with no import value: Claude Code's temp directory (scratchpad; `CLAUDE_CODE_TMPDIR` or
+`/tmp`, then `claude-<uid>`, or `claude` on Windows), its auto memory (`~/.claude/projects/*/memory/`) and, with the
+Maestri pack, `.maestri/` folders. The globs hold this machine's paths, so they always go to the user's settings. The
+kit adds missing globs at the end of the existing value and leaves the rest of the value and file as they were.
+Uninstall removes only the globs the kit added; globs the user already had stay. The exemptions apply even with ECC
+hooks off, since the ECC plugin brings GateGuard on its own; without GateGuard the variable does nothing.
 
 In project scope, rules, skills and templates go into the repository's `.claude/`, `.codex/`, `.agents/` and
 `AGENTS.md`. Project hook scripts live in `.vibecoding-devtools/hooks/`; registrations live in the repository's
@@ -250,6 +264,21 @@ Uninstall removes only the kit's registrations and unchanged installed files, pr
   outside a git repository). No uninstall: the report lists what it created.
 - On Antigravity, only the skill is installed, without a hook. Writes to `.agent/`; check that the skill does not load
   twice. Impeccable remains available on all three CLIs.
+
+## Maestri team
+
+`vibecoding-devtools team` installs the team in `team/` (see `team/README.md`) through the `maestri` CLI instead of
+copying files: roles, presets, partituras and notes live in the Maestri app, which may run on another computer
+([Maestri on a remote machine](maestri-remote.md)). It runs only from a Maestri terminal in Maestro mode and is not part
+of `install`, `update` or the saved state. Before any `maestri` command, also with `--dry-run`, it checks read-only that
+the CLIs, the Codex and Antigravity models in `team.json` and ECC in Claude Code exist, and stops with exit 1 listing
+what is missing. It then checks for conflicts before any change (a role with other text, a preset with another command,
+a Task Runner settings file with other content, an agent with another role) and leaves identical roles alone.
+`--roles-only` creates the missing global roles and `--update-roles` rewrites what differs; the full run also writes the
+Task Runner settings file to `~/.vibecoding-devtools/team/`, creates the Maestro preset, recruits what the caller does
+not reach yet, wires the ropes, creates the notes and the portal, and saves the partitura when none has its name.
+`--dry-run` prints the commands. A run that fails midway is resumed by running the same command again. Code:
+`installer/team.mjs`; manifest: `team/team.json`.
 
 ## Check during implementation
 
