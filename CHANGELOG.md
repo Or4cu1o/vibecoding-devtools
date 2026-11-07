@@ -5,6 +5,8 @@ Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-07
+
 ### Added
 
 - `team/`: versioned source of a 13-agent web development team for Maestri (Maestro plus twelve specialists), with

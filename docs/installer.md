@@ -35,16 +35,16 @@ is distributed only through the installer, never as a plugin (see `docs/cli-comp
 
 ## Entry point
 
-`npx vibecoding-devtools@1.0.2` downloads the pinned npm release and runs the installer. As an alternative,
-`npx github:Or4cu1o/vibecoding-devtools#v1.0.2` downloads the repository at the pinned tag and runs the same installer.
+`npx vibecoding-devtools@1.1.0` downloads the pinned npm release and runs the installer. As an alternative,
+`npx github:Or4cu1o/vibecoding-devtools#v1.1.0` downloads the repository at the pinned tag and runs the same installer.
 Both forms accept the same commands and flags. See [releasing](releasing.md) for trusted publishing and provenance.
 No `curl | bash`: the installer only **displays** the official installation command for an absent CLI, never executes
 it.
 
 ```bash
-npx vibecoding-devtools@1.0.2 install     # panel
-npx vibecoding-devtools@1.0.2 uninstall   # removes only what the kit installed
-npx vibecoding-devtools@1.0.2 update      # updates using saved choices
+npx vibecoding-devtools@1.1.0 install     # panel
+npx vibecoding-devtools@1.1.0 uninstall   # removes only what the kit installed
+npx vibecoding-devtools@1.1.0 update      # updates using saved choices
 ```
 
 ## Flow
@@ -149,9 +149,9 @@ edited items are retained with a warning and remain recorded for review or unins
 this removal safeguard. Third-party items are never removed by update. Unrelated content and empty folders remain.
 
 ```bash
-npx vibecoding-devtools@1.0.2 update --dry-run --json
-npx vibecoding-devtools@1.0.2 update --yes
-npx vibecoding-devtools@1.0.2 update --clis codex --no-maestri --yes
+npx vibecoding-devtools@1.1.0 update --dry-run --json
+npx vibecoding-devtools@1.1.0 update --yes
+npx vibecoding-devtools@1.1.0 update --clis codex --no-maestri --yes
 ```
 
 `update` supports `--dry-run`, `--json`, `--yes` and `--force` with the same safeguards and exit codes as install.
