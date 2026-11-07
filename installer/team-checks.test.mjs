@@ -65,10 +65,11 @@ test('--roles-only needs only the maestri binary', () => {
 test('real PATH lookup finds a runnable file by name or path and rejects the rest', (t) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'team-path-'));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const runnable = path.join(dir, 'fake-cli');
+  // Windows has no execute bit: a file is runnable there by its PATHEXT extension, so the rejected one has none.
+  const runnable = path.join(dir, process.platform === 'win32' ? 'fake-cli.cmd' : 'fake-cli');
   fs.writeFileSync(runnable, '#!/bin/sh\n', { mode: 0o755 });
   fs.writeFileSync(path.join(dir, 'not-runnable'), 'x', { mode: 0o644 });
-  const { onPath } = realTools({ env: { PATH: dir }, platform: 'linux' });
+  const { onPath } = realTools({ env: { PATH: dir, PATHEXT: '.CMD;.EXE' } });
   assert.equal(onPath('fake-cli'), true);
   assert.equal(onPath(runnable), true);
   assert.equal(onPath('not-runnable'), false);

@@ -80,7 +80,8 @@ function session(t, { maestri = fakeMaestri(), tools = okTools() } = {}) {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'team-home-'));
   t.after(() => fs.rmSync(home, { recursive: true, force: true }));
   const log = { out: [], err: [] };
-  const team = (...argv) => teamMain(argv, { kit, home, tools, run: maestri.run,
+  // `env: {}` keeps a MAESTRI_CLI set in the terminal running the tests from replacing the `maestri` binary name.
+  const team = (...argv) => teamMain(argv, { kit, home, tools, env: {}, run: maestri.run,
     out: (m) => log.out.push(m), err: (m) => log.err.push(m) });
   const settings = path.join(home, '.vibecoding-devtools', 'team', 'task-runner-limited.json');
   return { maestri, home, log, team, settings };
@@ -135,7 +136,8 @@ test('--dry-run reports the prerequisites, prints the file and commands, and wri
   assert.equal(log.out[0], 'Prerequisites found.');
   assert.ok(log.out.includes(`write ${settings}`));
   const formiga = log.out.find((line) => line.startsWith('maestri recruit Formiga'));
-  assert.ok(formiga.includes(`--settings ${settings}`));
+  // The command is shown as a quoted string, so backslashes in a Windows path appear escaped.
+  assert.ok(formiga.includes(`--settings ${JSON.stringify(settings).slice(1, -1)}`));
   assert.deepEqual(maestri.mutations(), []);
   assert.equal(fs.existsSync(path.join(home, '.vibecoding-devtools')), false);
 });
