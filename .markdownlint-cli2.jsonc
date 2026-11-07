@@ -15,5 +15,5 @@
     // Compact tables (|---|), as in the rest of the kit.
     "MD060": false
   },
-  "ignores": ["node_modules/**"]
+  "ignores": ["node_modules/**", ".maestri/**"]
 }

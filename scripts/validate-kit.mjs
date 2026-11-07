@@ -10,11 +10,11 @@ const errors = [];
 const error = (file, msg) => errors.push(`${file}: ${msg}`);
 
 // Skills supplied by Maestri or bundled with CLIs rather than this kit.
-const EXTERNAL = new Set(["maestri", "maestri-manager", "agy-customizations", "review-agent"]);
+const EXTERNAL = new Set(["maestri", "maestri-manager", "maestri-portal", "agy-customizations", "review-agent", "imagegen", "impeccable"]);
 
 function listMarkdown(dir) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
-    if (e.name === ".git" || e.name === "node_modules") return [];
+    if (e.name === ".git" || e.name === "node_modules" || e.name === ".maestri") return [];
     const p = path.join(dir, e.name);
     if (e.isDirectory()) return listMarkdown(p);
     return e.name.endsWith(".md") ? [p] : [];
