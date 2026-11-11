@@ -110,9 +110,9 @@ and Argon. Read `/usage` at the first checkpoint and trust the screen. For it:
   e.g. `/compact keep the T-12 decisions, open items and files touched`.
 - **Never** compact or clear an agent that is working, is in the middle of a task, has a prompt or menu open, or whose
   report has not arrived. Compacting between tasks keeps the CLI's own auto-compaction from firing in the middle of one.
-- **You, the Maestro,** follow the same limit. At every checkpoint estimate your own context; near about 60%, finish
-  the current atomic step, write open tasks, refs, pending reports and owner decisions to `ledger.md` and the project
-  notes, then stop. Compact yourself if your CLI lets you (in Claude Code the model cannot run `/compact`), otherwise
+- **You, the Maestro,** follow the same limit. Estimate your own context at every checkpoint and between the steps of
+  a long task, since one task can use up the rest of the window; near about 60%, finish the current atomic step,
+  write open tasks, refs, pending reports and owner decisions to `ledger.md` and the project notes, then stop. Compact yourself if your CLI lets you (in Claude Code the model cannot run `/compact`), otherwise
   tell the user in one line and stay idle until they compact you. Keep tool output small all along: filter long
   results (`tail`, `--jq`, line ranges) and leave file dumps and long reads to a subagent or a specialist.
 
