@@ -5,6 +5,11 @@ Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https
 
 ## [Unreleased]
 
+### Changed
+
+- `maestri-usage` rule and `maestri-budget` skill: the Maestro also keeps its own context in check. Near about 60% it
+  saves its state and stops to compact, or waits for the user to compact it when its CLI cannot.
+
 ## [1.1.0] - 2026-11-07
 
 ### Added
