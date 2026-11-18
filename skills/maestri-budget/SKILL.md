@@ -131,8 +131,9 @@ You choose each agent's CLI, model and effort; the user pins the exceptions. For
 - **Accounts:** moving an agent to another CLI on an account the survey listed is part of the map. A second account
   of the same CLI, an account the survey did not list, or a plan change needs the user (section 6).
 - **Balance by pace.** When a pool stays above 1.0 for two checkpoints, move one agent at a time, starting with the
-  one doing the most work, to its next choice in the map, on an account the survey listed. Below pace is not a reason
-  to move anyone: send that pool more work instead.
+  one doing the most work, to its next choice in the map, on an account the survey listed, and only when that choice
+  is in a pool below pace (another model in the same pool changes nothing). With no such choice, keep the agent and
+  defer the work or tell the user. Below pace is not a reason to move anyone: send that pool more work instead.
 - **Author and reviewer on different providers** when the map allows it: a second provider catches what the first
   misses.
 - **Untested modes**, a model or mode with no independent benchmark yet (such as Antigravity's Orchestrator): try it

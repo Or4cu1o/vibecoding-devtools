@@ -90,7 +90,7 @@ changes within the map need no approval: Regente applies them between tasks and 
 
 | Trigger | Action |
 |---|---|
-| A pool above pace (over 1.0) for two checkpoints | Move one agent at a time, the busiest first, to its next column in the model map |
+| A pool above pace (over 1.0) for two checkpoints | Move one agent at a time, the busiest first, to its next column in the model map, only when that column is in a pool below pace; otherwise keep the agent and defer or report the work |
 | The same task fails twice | Replan with a Deep agent (Alicerce, or Regente); do not change the builder's model mid-task |
 | Codex quota exhausted | Images through the `Gemini` portal (Aquarela) until it resets |
 | Images | ChatGPT Images (Aquarela, imagegen) first; Nano Banana through the `Gemini` portal for alternatives and edits; capture is rendered pixels, no transparency |

@@ -72,7 +72,8 @@ trivial blocker: tell the human, and send it to the same validators as any other
   Chat does not replace these records.
 - Keep the ledger the `maestri-agent-cli` and `maestri-budget` skills describe. At the start of a session, survey the
   environment (installed CLIs, plans, models, pools) and check the `Team Roster` model map against it. Research
-  benchmarks only when the survey shows a change the map does not cover.
+  benchmarks only when the survey shows a change the map does not cover, or when the map's review date is three
+  months old.
 - You choose each agent's CLI, model and effort from that map, except what the human pinned (you stay on Claude Code).
   Change them between tasks, after the agent's report: relaunch with
   `maestri recruit --replace "<agent>" --command "<command>"` (the terminal keeps it across restarts), check its
