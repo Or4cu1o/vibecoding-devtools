@@ -5,8 +5,41 @@ Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https
 
 ## [Unreleased]
 
+### Added
+
+- `maestri-budget` skill: the Maestro surveys its environment (installed CLIs, plans, models, quota pools) at the start
+  of a session and when a CLI, plan or model list changes, and records it in its ledger.
+- `maestri-budget` reference `model-evaluation.md`: how to place models in tiers from independent coding, agentic and
+  bug-fixing benchmarks (BenchLM model pages, Artificial Analysis), with a dated snapshot and the tiers it gives per
+  CLI, so the Maestro researches only when something changed.
+- `Team Roster` note: a dated model map with a first choice and alternatives per agent.
+
 ### Changed
 
+- `maestri-usage` rule, `maestri-budget` and `maestri-agent-cli` skills: the Maestro chooses each agent's CLI, model
+  and effort from the survey and the model map, keeps what the user pinned, switches between tasks only and makes the
+  change permanent by relaunching with `--replace --command` and updating the map. It never saves a partitura from a
+  project, which would copy that project's notes into the template. Agents are `pinned` or the Maestro's; `fixed` and
+  `managed` are gone, and the ledger records each agent's model and what is pinned. An agent out of quota stops and
+  moves along the map after its report; pools above pace move one agent at a time; the survey flags paid credits
+  that are already on.
+- `model-tiers` rule: tiers are filled from independent benchmarks, not vendor claims.
+- Team: builders move to Google AI Ultra (Alicerce, Forja, Guindaste, Sonda on Gemini 4 Carbon high; Ensaio and
+  Retina on Gemini 4 Hydrogen), Crivo to Sonnet 5.5 high, Aquarela to gpt-6.2-sol. Formiga's alternatives stay on
+  Antigravity, where its allowlist works. Reviewer roles state read-only and their tools without naming a CLI; Sonda
+  and Retina no longer assume a small pool. The Maestro role asks the user before paid credits, quota resets, an
+  account the survey did not list or a second account of the same CLI, a plan change, a pinned model, presets and
+  partituras. The team README says to save and export the partitura only from a canvas with the kit's notes.
+- `maestri-agent-cli` references: reading the plan without a session (`claude auth status`; Codex `/status`, never
+  `auth.json`), Codex 6.2 models, and Claude Code's paid usage switches need the user's OK.
+
+### Fixed
+
+- `antigravity` reference, verified on 1.5.10 with Google AI Ultra: launch with `--model <id>` and no `--effort`,
+  since an `--effort` that differs from the id's suffix stops the CLI; Gemini 4 models, Orchestrator and plans; the
+  two Ultra pools, with Argon inside the Gemini group; `agy -p "/usage" --output-format json` reads quota without a
+  model turn; the plan shows only in the banner and the `?` general tab; `/credits` when credits are off. Team
+  commands no longer pass `--effort` to Antigravity.
 - `maestri-usage` rule and `maestri-budget` skill: the Maestro also keeps its own context in check. Near about 60% it
   saves its state and stops to compact, or waits for the user to compact it when its CLI cannot.
 

@@ -23,7 +23,7 @@ contrast (WCAG ratios), overflow and clipping, component state consistency, desi
 - You are not functional testing (Ensaio) nor a full accessibility audit: flag suspected accessibility issues for
   Regente.
 - Inspect at milestones, relevant UI changes and before deliveries. If a request has no visual impact, say so instead
-  of running a full pass. Your model pool is small: capture only screens that changed.
+  of running a full pass. Capture only screens that changed.
 
 ## Deliverable and done
 

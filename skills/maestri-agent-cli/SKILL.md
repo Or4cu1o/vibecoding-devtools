@@ -22,17 +22,18 @@ and model tables to the same file.
 ```markdown
 ## Agents
 
-| Agent | CLI | Account | Model |
-|---|---|---|---|
-| Hawk | Codex | Work | fixed |
-| Lynx | Antigravity | Default | managed |
+| Agent | CLI | Account | Model | Control |
+|---|---|---|---|---|
+| Hawk | Codex | Work | gpt-6.2-sol medium | yours |
+| Lynx | Antigravity | Default | gemini-4-carbon-high | pinned: CLI and model |
 ```
 
 - **Account** is the account name from `maestri preset list` when you know it (you recruited the agent); otherwise the
   login or plan its screen shows. Agents on the same account share its quota.
-- **Model** is `fixed` unless the user tells you an Antigravity agent is a multi-model generalist under your control:
-  then it is `managed` (see the `maestri-budget` skill). Never change the model, effort or settings of a `fixed` agent
-  unless the user asks for that change.
+- **Model** is the model and effort the agent runs now. **Control** is `pinned: <what>` (CLI, model, effort) for what
+  the user fixed, otherwise `yours`: you choose and change it as the `maestri-budget` skill says. Never change what is
+  pinned unless the user asks. The durable record of pins is the team's model map (the `Team Roster` note); copy it
+  here when a session starts.
 
 - **Where:** your session directory (the scratch or session folder your CLI gives you). If your CLI has none, use
   `maestri-<your name>/ledger.md` in the system temp folder. It is your working record: never put it on the canvas or in
@@ -43,8 +44,8 @@ and model tables to the same file.
   shows the account is in its reference.
 - **Update the row** whenever you run `maestri recruit --replace` with another preset, command or account: that is how
   an agent's CLI or account changes.
-- Use account names as `maestri preset list` prints them; never write an email, token or key in the file. Do not record
-  the model or effort: they change with restarts and pickers.
+- Use account names as `maestri preset list` prints them; never write an email, token or key in the file. Update the
+  model column when you relaunch an agent or change its model; after a restart, check the footer against it.
 - If the screen ever disagrees with the file, trust the screen and fix the file. In a new session the file may be gone:
   rebuild it the same way.
 
@@ -130,7 +131,7 @@ Answering another agent's permission prompt approves an action on the user's beh
 | Working | Wait. Never interrupt an agent that is still working. |
 | Waiting on a permission prompt | Section 3. |
 | Menu, panel or notice open | Esc until the input box is back, then resend if needed. |
-| Out of quota | Check the reference: switch to a model group with quota left, or ask the user to move the agent with `maestri recruit --replace "Name" --account "Other"` (Claude Code and Codex only; accounts from `maestri preset list`), or tell the user when it resets. Pacing quota so this does not happen is the `maestri-budget` skill. |
+| Out of quota | Let the agent stop; never switch it mid-task. After its report, if it is not pinned, move it along the team's model map as the `maestri-budget` skill says; otherwise tell the user when it resets, or ask them to move it to another account (`maestri recruit --replace "Name" --account "Other"`, Claude Code and Codex). |
 | Logged out | Tell the user: logins are interactive and need them. |
 | Error | Read it, retry once if it is transient, otherwise report it to the user. |
 
@@ -144,7 +145,8 @@ Answering another agent's permission prompt approves an action on the user's beh
 2. **The CLI's settings file**, when the reference names it.
 3. **The TUI menu** (`/model`, `/config`...) through `--raw`, step by step.
 
-Change only what the user asked for, and tell them what you changed: some changes reset other values (switching model
+Change only what the user asked for, or what the `maestri-budget` skill lets you choose, and tell them what you
+changed: some changes reset other values (switching model
 can reset effort), and some pickers save the choice as the default for every new session unless you pick the
 session-only option. The reference says which.
 

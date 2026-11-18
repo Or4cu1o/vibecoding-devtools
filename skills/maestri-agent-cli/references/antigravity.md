@@ -1,12 +1,13 @@
 # Antigravity CLI
 
 Verified live on Antigravity CLI 1.4.8, Windows, Google AI Pro account (2026-10-27); quota pools and `/context` on 1.4.9
-(2026-11-04).
+(2026-11-04); models, headless `/usage` and Ultra pools on 1.5.10, Linux, Google AI Ultra account (2026-11-18).
 
 ## Identify
 
-- Launch command: `agy`, e.g. `agy --model gemini-4-argon-high --effort high`.
-- Banner: `Antigravity CLI <version>`, account and plan, model and effort, workspace folder.
+- Launch command: `agy`, e.g. `agy --model gemini-4-carbon-high`.
+- Banner: `Antigravity CLI <version>`, account and plan (`<email> (Google AI Ultra)`), model and effort, workspace
+  folder. The `?` → **general** tab shows the plan too; no headless command prints it (1.5.10).
 - Footer: `<model> · <effort>`, e.g. `Gemini 3.8 Flash · medium`.
 - `?` → tab **general**: version, account, workspace, project config
   (`~/.gemini/config/projects/default-cli-project.json`), log (`~/.gemini/antigravity-cli/log/`), conversation id.
@@ -77,7 +78,7 @@ Verified on Antigravity CLI 1.5.2, Linux, Google AI Pro (2026-11-06), with the g
 `always-proceed`:
 
 ```bash
-agy --model <id> --effort <level> --mode accept-edits --add-dir ../../.. --settings <file>
+agy --model <id> --mode accept-edits --add-dir ../../.. --settings <file>
 ```
 
 `<file>` is a JSON file with `"toolPermission": "request-review"` and the `permissions` lists; session settings
@@ -126,18 +127,28 @@ esc to cancel
 ## Model and effort
 
 - **Exact ids:** `agy models` prints one `<id>` and name per line for the account, e.g. `gemini-3.8-flash-low`,
-  `gemini-4-argon-high`, `claude-sonnet-5-5-medium`; the effort is part of the id. Launch with
-  `agy --model <id> --effort <low|medium|high>` (e.g. in `maestri recruit --command`).
+  `gemini-4-carbon-high`, `gemini-4-hydrogen-xhigh`; the effort is part of the id, except for the Orchestrator and the
+  third-party models (`gemini-pro-orchestrator`, `claude-opus-4-6-thinking`). Launch with `agy --model <id>` (e.g. in
+  `maestri recruit --command`) and **no `--effort`**: an `--effort` that differs from the id's suffix makes the CLI exit
+  with `--model gemini-4-carbon-high conflicts with --effort=low` (1.5.10).
+- **Models by plan** (docs, 2026-11-18): Gemini 4 Carbon and Orchestrator (Carbon) only on Google AI Ultra; Gemini 4
+  Argon, Hydrogen and Orchestrator (Argon) on Pro and Ultra; Gemini 3.8 Flash on every plan. On Ultra 1.5.10,
+  `agy models` lists Carbon (low, medium, high), Argon (low, medium, high), Hydrogen (low, medium, high, xhigh),
+  `gemini-pro-orchestrator` (Orchestrator, Carbon plans) and `gemini-pro-orchestrator-argon`, Flash 3.8, and older
+  third-party models.
+- **Orchestrator** is one agent served by two models: Carbon or Argon plans and reviews, Hydrogen edits, builds and
+  tests, and control returns to the planner when a step fails twice. It is not a router and has no effort choice. No
+  independent benchmark yet: trial it before giving it a builder (`maestri-budget`).
 
 1. `/model`, Enter → **Switch Model** picker.
-2. ↑/↓ picks the model, ←/→ sets effort (low, medium, high), Enter confirms, Esc goes back.
+2. ↑/↓ picks the model, ←/→ sets effort (low, medium, high; Hydrogen also xhigh), Enter confirms, Esc goes back. On the
+   Orchestrator row ←/→ or Tab switches the planner (Carbon, Argon); Claude 4.6 and GPT-OSS rows have no effort.
 3. Confirmation in the history: `⎿ Model set to <model> (<Effort>)`.
 
-Switching model resets effort to medium. `/effort` sets effort alone. Both can be set at launch:
-`agy --model <id> --effort <level>`.
+Switching model resets effort to medium. `/effort` sets effort alone, within the session.
 
 A `/model` change does not survive a restart when the preset command pins the model: after Maestri relaunched it with
-`--model gemini-4-argon-high --effort high`, the agent was back on Argon high.
+`--model gemini-4-argon-high`, the agent was back on Argon high.
 
 ## Settings (`/config`)
 
@@ -161,19 +172,23 @@ Telemetry, Notifications, Rendering Mode, Seasonal Themes, Show Active Tasks, Sh
 ## Quota
 
 - `/usage` (alias `quota`): quota per pool, shown as **percent remaining** (not used), with `Refreshes in <h>h <m>m`
-  once part of it is spent. The panel scrolls (PgDn `\e[6~`); Esc closes it. Pools on a Pro plan (1.4.9):
-  - **Gemini** group: Gemini Flash, Gemini Pro. Weekly and five-hour limits. Flash has the roomiest quota but makes
-    frequent mistakes in development work: verify everything it delivers (`maestri-budget`).
-  - **Claude and GPT** group: Claude Opus, Claude Sonnet, GPT-OSS. Weekly and five-hour limits.
-  - **Gemini 4 Argon**: its own weekly limit, separate from the Gemini group, with no five-hour window. It is small:
-    a few large tasks a week.
+  once part of it is spent. The panel scrolls (PgDn `\e[6~`); Esc closes it.
+- **Without a session:** `agy -p "/usage" --output-format json` prints the same pools as JSON, without a model turn
+  (`usage.total_tokens` 0): `command.data.groups[]`, each with the models it covers and `buckets[]` holding `window`
+  (`weekly`, `5h`), `remaining_fraction` and `reset_time` (UTC). The plan's name is not in it (1.5.10).
+- Pools on Google AI Ultra (1.5.10): **Gemini Models** (Carbon, Argon, Hydrogen, both Orchestrators, Flash) and **Claude
+  and GPT models**, each with a weekly and a five-hour limit. On a Pro plan (1.4.9) Argon had its own small weekly
+  pool instead.
+- Flash has the roomiest quota but makes frequent mistakes in development work: verify everything it delivers
+  (`maestri-budget`).
 - Pools are separate: when one runs out, `/model` to a model of another pool keeps the agent working on the same
   account.
 - Quota is spent in proportion to the cost of the tokens: shorter tasks and cheaper models last longer.
 - `/context`: tokens used of the model's window (e.g. `0/1.0M tokens (0.0%)`), split into user messages, agent
   responses and tool calls. Esc closes it.
-- `/credits`: remaining G1 credits. With **Use AI Credits** on, the agent keeps going on credits after the quota ends;
-  turning it on spends money, so ask the user.
+- `/credits` (**Model AI Credits**): the remaining AI credits, or `AI Credits not enabled (enable in /settings)` while
+  **Use AI Credits** is off (1.5.10). With it on, the agent keeps going on credits after the quota ends; turning it on
+  spends money, so ask the user.
 - Not yet observed: the quota-exhausted screen.
 
 ## Keys

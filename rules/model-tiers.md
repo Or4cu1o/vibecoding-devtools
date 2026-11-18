@@ -13,5 +13,7 @@ or the orchestrator configuration.
 - **Escalation:** when the same task fails twice with the same approach, move up a tier to replan instead of persisting.
 - **Second opinion** (another provider or cheaper model): treat it as a suggestion. If used for High-risk work,
   validation comes from a deep-tier model.
+- **Filling the tiers:** place models by independent coding, agentic and bug-fixing benchmarks, not by the vendor's
+  own claims; the `maestri-budget` skill has the method.
 - **Frontend requiring visual judgment:** the model the project has validated for design; until validated, standard
   tier.
