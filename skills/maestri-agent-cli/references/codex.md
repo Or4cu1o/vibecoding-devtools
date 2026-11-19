@@ -11,6 +11,9 @@ plan (2026-11-04).
 - Footer: `<model> <effort> · <folder>`, then `? for shortcuts` and warnings such as `⚠ 1 warning · f2 to view`.
 - `/status`: model and reasoning effort, provider, folder, **Permissions**, `AGENTS.md` in use, **Account** and plan,
   collaboration mode, session id, and the usage limit with its reset date.
+- **Plan without a session:** `codex login status` says only how you are logged in (`Logged in using ChatGPT`), not
+  the plan (0.170.0). Read the plan in `/status` of a running Codex agent. Never read it from `~/.codex/auth.json`: that
+  file holds the login tokens.
 
 ## States
 
@@ -130,9 +133,12 @@ if that is required. Do not combine limited-agent grants with `--approve-for-me`
 ## Model and effort
 
 - `/model` → **Select Model and Effort**: numbered models, `enter select · esc back`. The list depends on the plan (on a
-  Free account: GPT-6-Luna, GPT-5.6-Terra, GPT-5.6-Luna).
-- **Exact ids:** `codex debug models` prints the account's catalog as JSON: `slug` is the id (e.g. `gpt-6.1-sol`) and
-  `supported_reasoning_levels` lists the efforts. Launch with
+  Free account: GPT-6-Luna, GPT-5.6-Terra, GPT-5.6-Luna; on ChatGPT Plus with 0.170.0: GPT-6.2-Sol, GPT-6.2-Astra,
+  GPT-6.1-Terra, GPT-6.1-Sol, GPT-6-Astra, GPT-6-Sol, GPT-6-Luna and older).
+- **Exact ids:** `codex debug models` prints the account's catalog as JSON: `slug` is the id (e.g. `gpt-6.2-sol`) and
+  `supported_reasoning_levels` lists the efforts. The output is large: filter it, e.g.
+  `codex debug models | grep -o '"slug":"[^"]*"'`, or read `slug` and `description` from
+  `~/.codex/models_cache.json`. Launch with
   `codex --model <slug> -c model_reasoning_effort=<low|medium|high|...>`.
 
 ## Quota

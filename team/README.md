@@ -27,16 +27,16 @@ every CLI by the kit installer; they do not repeat them.
 | Regente | Team Maestro | preset `Team Maestro` (Maestro on): `claude --model claude-opus-5-5 --effort high --permission-mode auto --add-dir ../../..` |
 | Vitral | Frontend Engineer | `claude --model claude-sonnet-5-5 --effort high --permission-mode auto --add-dir ../../..` |
 | Bússola | UX/UI Designer | `claude --model claude-opus-5-5 --effort high --permission-mode auto --add-dir ../../..` |
-| Alicerce | Backend Architect | `claude --model claude-sonnet-5-5 --effort high --permission-mode auto --add-dir ../../..` |
+| Alicerce | Backend Architect | `agy --model gemini-4-carbon-high --mode auto --add-dir ../../..` |
 | Sentinela | AppSec Auditor | `claude --model claude-opus-5-5 --effort medium --permission-mode auto --add-dir ../../.. --disallowedTools Edit Write NotebookEdit` |
-| Crivo | Code Reviewer | same as Sentinela |
-| Guindaste | DevOps Engineer | `claude --model claude-sonnet-5-5 --effort medium --permission-mode auto --add-dir ../../..` |
-| Forja | Backend Engineer | `codex --no-daemon --approve-for-me -m gpt-6.1-sol -c model_reasoning_effort=medium --add-dir ../../..` |
-| Ensaio | QA Engineer | same as Forja |
-| Aquarela | Visual Asset Designer | `codex --no-daemon --approve-for-me -m gpt-6.1-sol -c model_reasoning_effort=low --add-dir ../../..` |
-| Retina | Visual QA Inspector | `agy --model gemini-4-argon-medium --effort medium --mode auto --add-dir ../../..` |
-| Sonda | Research Analyst | `agy --model gemini-4-argon-high --effort high --mode auto --add-dir ../../..` |
-| Formiga | Task Runner | `agy --model gemini-3.8-flash-medium --effort medium --mode accept-edits --add-dir ../../.. --settings <file>` |
+| Crivo | Code Reviewer | `claude --model claude-sonnet-5-5 --effort high --permission-mode auto --add-dir ../../.. --disallowedTools Edit Write NotebookEdit` |
+| Guindaste | DevOps Engineer | same as Alicerce |
+| Forja | Backend Engineer | same as Alicerce |
+| Ensaio | QA Engineer | `agy --model gemini-4-hydrogen-xhigh --mode auto --add-dir ../../..` |
+| Aquarela | Visual Asset Designer | `codex --no-daemon --approve-for-me -m gpt-6.2-sol -c model_reasoning_effort=low --add-dir ../../..` |
+| Retina | Visual QA Inspector | `agy --model gemini-4-hydrogen-high --mode auto --add-dir ../../..` |
+| Sonda | Research Analyst | same as Alicerce |
+| Formiga | Task Runner | `agy --model gemini-3.8-flash-medium --mode accept-edits --add-dir ../../.. --settings <file>` |
 
 - Recruits start in `<workspace>/.maestri/roles/<id>/`, so `--add-dir ../../..` always points at the workspace root.
   Every Claude command has it too. It is variadic: keep it before `--disallowedTools` or last. The preset
@@ -46,6 +46,10 @@ every CLI by the kit installer; they do not repeat them.
 - `<file>` is `task-runner-limited.json` in `~/.vibecoding-devtools/team/` (a path, quoted if it has spaces), written by
   `team` from `settings/task-runner-limited.json`: a stable path that does not depend on the npx cache and works in
   POSIX shells and PowerShell. Commands outside its allowlist prompt.
+- Antigravity commands carry no `--effort`: the effort is in the model id, and a different `--effort` stops the CLI.
+- These commands follow the model map in `notes/team-roster.md` (reviewed 2026-11-18) for Claude Max, ChatGPT Plus and
+  Google AI Ultra. Regente surveys the environment at the start of a session and moves agents along the map when a
+  model or plan is missing or a pool runs off pace (`maestri-budget` skill).
 - Model ids change: check `codex debug models` and `agy models` before reusing a command.
 
 ## Topology
@@ -128,7 +132,9 @@ Agents already recruited keep the command they were launched with (the preset co
 To apply a changed command, run `maestri recruit --replace "<agent>" --command "<command>"` for that agent between
 tasks, with the command from the table above and, for Formiga, the path of the settings file. Save the partitura again
 with `maestri partitura update "vibecoding-devtools" <agents> --without-me` when agents, ropes or notes change, then
-export it again from the Maestri app over `partitura/vibecoding-devtools.maestripartitura`.
+export it again from the Maestri app over `partitura/vibecoding-devtools.maestripartitura`. Save and export only from a
+canvas that holds the team with the kit's notes (`Team Roster` matching `notes/team-roster.md`, blank `Project Context`
+pages), never from a project's canvas: the partitura stores the note text.
 
 ## Known limits
 
