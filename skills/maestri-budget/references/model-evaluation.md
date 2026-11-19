@@ -1,8 +1,8 @@
 # Model evaluation
 
 How to place models in the `model-tiers` tiers for a team that codes, orchestrates agents and hunts bugs. Use it only
-when the environment survey shows a change (section 0 of the skill); otherwise the team's model map and the snapshot
-below already answer.
+when the environment survey shows a change the map does not cover, or when the map's review date is about three
+months old (section 0 of the skill); otherwise the team's model map and the snapshot below already answer.
 
 ## Method
 
